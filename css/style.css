@@ -844,3 +844,321 @@ header p{
         font-size:21px;
     }
 }
+/* =========================================================
+   REAL WEATHER MAP V2
+   ========================================================= */
+
+.map-control-box {
+    background: rgba(5, 12, 24, 0.94);
+    border: 1px solid rgba(0, 229, 255, 0.45);
+    border-radius: 14px;
+    padding: 10px;
+    box-shadow:
+        0 0 20px rgba(0, 229, 255, 0.15);
+    backdrop-filter: blur(10px);
+}
+
+.map-control-title {
+    color: #00e5ff;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    margin-bottom: 7px;
+}
+
+.map-control-box button {
+    display: block;
+    width: 145px;
+    margin: 4px 0;
+    padding: 7px 10px;
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(0, 229, 255, 0.05);
+    color: #dffcff;
+    cursor: pointer;
+    font-size: 11px;
+    text-align: left;
+    transition: 0.2s;
+}
+
+.map-control-box button:hover {
+    background: rgba(0, 229, 255, 0.18);
+    border-color: #00e5ff;
+}
+
+.map-control-box button.active {
+    background: rgba(0, 229, 255, 0.22);
+    border-color: #00e5ff;
+    color: #ffffff;
+    box-shadow:
+        0 0 10px rgba(0, 229, 255, 0.25);
+}
+
+
+/* =========================================================
+   WIND MARKER
+   ========================================================= */
+
+.wind-div-icon {
+    background: transparent !important;
+    border: none !important;
+}
+
+.wind-marker {
+    width: 34px;
+    height: 34px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter:
+        drop-shadow(
+            0 0 5px rgba(0, 229, 255, 0.9)
+        );
+}
+
+.wind-main {
+    width: 44px;
+    height: 44px;
+    filter:
+        drop-shadow(
+            0 0 10px rgba(0, 229, 255, 1)
+        );
+}
+
+.wind-arrow {
+    position: absolute;
+    left: 50%;
+    top: 1px;
+    transform-origin: center 50%;
+    color: #00e5ff;
+    font-size: 25px;
+    line-height: 1;
+    text-shadow:
+        0 0 5px #00e5ff,
+        0 0 12px #00e5ff;
+    animation:
+        windFloat 1.3s infinite ease-in-out;
+}
+
+.wind-main .wind-arrow {
+    font-size: 34px;
+}
+
+.wind-speed {
+    position: absolute;
+    left: 50%;
+    top: 25px;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    color: white;
+    font-size: 9px;
+    font-weight: 900;
+    padding: 2px 4px;
+    border-radius: 5px;
+    background: rgba(0, 8, 18, 0.85);
+    border: 1px solid rgba(0, 229, 255, 0.45);
+}
+
+.wind-main .wind-speed {
+    top: 32px;
+    font-size: 10px;
+}
+
+.wind-speed span {
+    font-size: 7px;
+    opacity: 0.8;
+}
+
+@keyframes windFloat {
+
+    0% {
+        margin-top: 0;
+        opacity: 0.65;
+    }
+
+    50% {
+        margin-top: -3px;
+        opacity: 1;
+    }
+
+    100% {
+        margin-top: 0;
+        opacity: 0.65;
+    }
+
+}
+
+
+/* =========================================================
+   GPS
+   ========================================================= */
+
+.gps-live-icon {
+    background: transparent !important;
+    border: none !important;
+}
+
+.gps-pulse {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(0, 229, 255, 0.12);
+    border: 1px solid #00e5ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation:
+        gpsPulse 1.6s infinite;
+}
+
+.gps-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #00e5ff;
+    box-shadow:
+        0 0 10px #00e5ff,
+        0 0 20px #00e5ff;
+}
+
+@keyframes gpsPulse {
+
+    0% {
+        transform: scale(0.8);
+        opacity: 0.6;
+    }
+
+    50% {
+        transform: scale(1.15);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(0.8);
+        opacity: 0.6;
+    }
+
+}
+
+
+/* =========================================================
+   MAP LIVE INFO
+   ========================================================= */
+
+.map-live-info {
+    background:
+        rgba(3, 10, 20, 0.92);
+
+    color:
+        #dffcff;
+
+    border:
+        1px solid rgba(0, 229, 255, 0.45);
+
+    border-radius:
+        10px;
+
+    padding:
+        9px 12px;
+
+    min-width:
+        190px;
+
+    box-shadow:
+        0 0 15px rgba(0, 229, 255, 0.12);
+
+    backdrop-filter:
+        blur(8px);
+
+    font-size:
+        11px;
+}
+
+.map-live-info strong {
+    color:
+        #00e5ff;
+
+    letter-spacing:
+        1px;
+}
+
+#mapUpdatedText {
+    margin-top:
+        4px;
+
+    opacity:
+        0.65;
+
+    font-size:
+        9px;
+}
+
+
+/* =========================================================
+   WEATHER POPUP
+   ========================================================= */
+
+.weather-popup {
+    min-width: 190px;
+    font-family: Arial, sans-serif;
+    color: #17202a;
+}
+
+.popup-title {
+    font-weight: 900;
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: #007c91;
+}
+
+.popup-note {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid #ddd;
+    font-size: 10px;
+    opacity: 0.65;
+}
+
+
+/* =========================================================
+   LEAFLET
+   ========================================================= */
+
+.leaflet-control-zoom a {
+    background:
+        rgba(4, 12, 24, 0.92) !important;
+
+    color:
+        #00e5ff !important;
+
+    border-color:
+        rgba(0, 229, 255, 0.3) !important;
+}
+
+.leaflet-control-layers {
+    background:
+        rgba(4, 12, 24, 0.94) !important;
+
+    color:
+        white !important;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    .map-control-box button {
+        width: 125px;
+        font-size: 10px;
+    }
+
+    .map-live-info {
+        min-width: 160px;
+        font-size: 10px;
+    }
+
+}
