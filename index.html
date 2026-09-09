@@ -4,956 +4,519 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-<title>CBRND Real Command Center V2</title>
+<title>CBRND Weather Monitoring Command Center</title>
 
-<!-- Leaflet - No API Key -->
 <link
-rel="stylesheet"
-href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
 />
 
-<style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+<style>
 *{
     box-sizing:border-box;
     margin:0;
     padding:0;
 }
 
-:root{
-    --bg:#040910;
-    --panel:#0b1522;
-    --panel2:#101f30;
-    --line:#1d354a;
-    --text:#eaf7ff;
-    --muted:#7892a9;
-    --cyan:#13ddff;
-    --green:#20ff9c;
-    --yellow:#ffd447;
-    --red:#ff3657;
-    --blue:#5785ff;
-}
-
 body{
     min-height:100vh;
-    color:var(--text);
     font-family:Arial,Helvetica,sans-serif;
     background:
-        radial-gradient(
-            circle at 50% -10%,
-            #17415c 0,
-            transparent 35%
-        ),
-        radial-gradient(
-            circle at 0% 100%,
-            #092333,
-            transparent 30%
-        ),
-        var(--bg);
+        radial-gradient(circle at top,#172d52 0%,#08111f 42%,#03070d 100%);
+    color:#fff;
 }
 
-/* GRID */
-
-body:before{
-    content:"";
-    position:fixed;
-    inset:0;
-    pointer-events:none;
-    opacity:.1;
-    background-image:
-        linear-gradient(#18dfff 1px,transparent 1px),
-        linear-gradient(90deg,#18dfff 1px,transparent 1px);
-    background-size:45px 45px;
-}
-
-/* HEADER */
-
-header{
-    height:74px;
+.header{
+    padding:18px;
+    border-bottom:1px solid rgba(255,255,255,.12);
+    background:rgba(5,12,24,.85);
+    backdrop-filter:blur(15px);
     position:sticky;
     top:0;
     z-index:1000;
+}
 
+.header-inner{
+    max-width:1500px;
+    margin:auto;
     display:flex;
+    align-items:center;
     justify-content:space-between;
-    align-items:center;
-
-    padding:0 25px;
-
-    background:#06101add;
-    backdrop-filter:blur(15px);
-
-    border-bottom:1px solid var(--line);
+    gap:15px;
 }
 
-.logo{
-    display:flex;
-    align-items:center;
-    gap:13px;
-}
-
-.logoIcon{
-    width:48px;
-    height:48px;
-
-    display:flex;
-    justify-content:center;
-    align-items:center;
-
-    border-radius:14px;
-
-    background:
-        linear-gradient(
-            145deg,
-            #19364e,
-            #050a10
-        );
-
-    box-shadow:
-        inset 5px 5px 12px #34566d,
-        inset -6px -6px 12px #010306,
-        0 0 25px #13ddff22;
-
-    font-size:25px;
-}
-
-.logo h1{
-    font-size:18px;
-    letter-spacing:2px;
-}
-
-.logo p{
-    margin-top:4px;
-    color:var(--muted);
-    font-size:10px;
+.logo-area h1{
+    font-size:22px;
     letter-spacing:1px;
 }
 
-.online{
+.logo-area p{
+    color:#8da8c8;
+    font-size:12px;
+    margin-top:5px;
+}
+
+.live-status{
     display:flex;
     align-items:center;
     gap:8px;
-
-    font-size:11px;
-    color:var(--green);
+    font-size:12px;
+    color:#70ffb0;
 }
 
-.onlineDot{
-    width:9px;
-    height:9px;
-
+.live-dot{
+    width:10px;
+    height:10px;
     border-radius:50%;
-    background:var(--green);
-
-    box-shadow:0 0 12px var(--green);
+    background:#00ff7f;
+    box-shadow:0 0 14px #00ff7f;
 }
-
-/* MAIN */
 
 .container{
-    max-width:1450px;
+    max-width:1500px;
     margin:auto;
-    padding:20px;
+    padding:18px;
 }
 
-/* PANELS */
-
-.panel{
-    background:
-        linear-gradient(
-            145deg,
-            #102032,
-            #07101a
-        );
-
-    border:1px solid var(--line);
-
-    border-radius:19px;
-
-    box-shadow:
-        12px 12px 25px #000b,
-        inset 1px 1px 3px #29465c;
-}
-
-.panelHeader{
-    min-height:55px;
-
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-
-    padding:14px 18px;
-
-    border-bottom:1px solid var(--line);
-}
-
-.panelHeader h2{
-    font-size:12px;
-    letter-spacing:1.5px;
-}
-
-.panelHeader span{
-    font-size:9px;
-    color:var(--muted);
-}
-
-/* TOP */
-
-.top{
+.dashboard-grid{
     display:grid;
-    grid-template-columns:1fr 390px;
-    gap:20px;
+    grid-template-columns:repeat(12,1fr);
+    gap:15px;
 }
 
-/* VOICE */
-
-.voice{
-    min-height:480px;
-
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-
-    text-align:center;
+.card{
+    background:rgba(12,24,43,.78);
+    border:1px solid rgba(130,170,220,.16);
+    border-radius:18px;
+    box-shadow:0 15px 40px rgba(0,0,0,.28);
+    overflow:hidden;
 }
 
-.voice h2{
-    font-size:23px;
-    letter-spacing:2px;
+.card-title{
+    padding:14px 16px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    font-size:14px;
+    font-weight:bold;
+    letter-spacing:.6px;
 }
 
-.voiceSubtitle{
-    margin-top:7px;
-    color:var(--muted);
+.map-card{
+    grid-column:span 8;
+}
+
+#map{
+    height:510px;
+    width:100%;
+}
+
+.info-card{
+    grid-column:span 4;
+    padding-bottom:10px;
+}
+
+.metrics{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    padding:15px;
+}
+
+.metric{
+    min-height:105px;
+    padding:15px;
+    border-radius:15px;
+    background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.06);
+}
+
+.metric-icon{
+    font-size:22px;
+}
+
+.metric-label{
+    margin-top:8px;
+    color:#8fa7c3;
     font-size:12px;
 }
 
-.micArea{
-    width:260px;
-    height:260px;
-
-    display:flex;
-    justify-content:center;
-    align-items:center;
-
-    position:relative;
-
-    margin-top:15px;
+.metric-value{
+    margin-top:5px;
+    font-size:24px;
+    font-weight:bold;
 }
 
-.ring{
-    position:absolute;
-
-    border:1px solid #14dcff55;
-
-    border-radius:50%;
-
-    animation:ring 3s infinite;
-}
-
-.ring1{
-    width:175px;
-    height:175px;
-}
-
-.ring2{
-    width:220px;
-    height:220px;
-    animation-delay:1s;
-}
-
-.ring3{
-    width:255px;
-    height:255px;
-    animation-delay:2s;
-}
-
-@keyframes ring{
-
-    0%{
-        transform:scale(.75);
-        opacity:0;
-    }
-
-    40%{
-        opacity:1;
-    }
-
-    100%{
-        transform:scale(1.1);
-        opacity:0;
-    }
-
-}
-
-.mic{
-    width:145px;
-    height:145px;
-
-    border-radius:50%;
-
-    border:1px solid #46657d;
-
-    background:
-        radial-gradient(
-            circle at 35% 25%,
-            #41627a,
-            #172f44 35%,
-            #050c13 75%
-        );
-
-    color:white;
-
-    font-size:55px;
-
-    cursor:pointer;
-
-    position:relative;
-    z-index:5;
-
-    box-shadow:
-        inset 8px 8px 18px #5b778b,
-        inset -12px -12px 22px #020406,
-        0 18px 30px #000d;
-
-    transition:.2s;
-}
-
-.mic:hover{
-    transform:translateY(-4px);
-}
-
-.mic:active{
-    transform:translateY(5px) scale(.96);
-}
-
-.mic.listening{
-    border-color:var(--red);
-
-    box-shadow:
-        inset 8px 8px 18px #7c2635,
-        inset -12px -12px 22px #150207,
-        0 0 35px var(--red);
-
-    animation:micPulse 1s infinite;
-}
-
-@keyframes micPulse{
-
-    50%{
-        transform:scale(1.06);
-    }
-
-}
-
-.voiceStatus{
-    color:var(--cyan);
-    font-size:13px;
-    min-height:20px;
-}
-
-.commandExample{
-    margin-top:15px;
-
-    max-width:600px;
-
-    color:#678198;
-
+.metric-unit{
     font-size:11px;
-    line-height:1.8;
+    color:#8fa7c3;
 }
 
-/* CONTROLS */
-
-.controls{
-    padding:17px;
+.graph-card{
+    grid-column:span 8;
 }
 
-.controlGrid{
+.chart-wrap{
+    height:330px;
+    padding:15px;
+}
+
+.earthquake-card{
+    grid-column:span 4;
+}
+
+.eq-summary{
+    padding:15px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.eq-box{
+    background:rgba(255,255,255,.045);
+    border-radius:14px;
+    padding:15px;
+}
+
+.eq-number{
+    font-size:28px;
+    font-weight:bold;
+}
+
+.eq-label{
+    color:#8fa7c3;
+    font-size:11px;
+    margin-top:4px;
+}
+
+.earthquake-list{
+    max-height:235px;
+    overflow:auto;
+    padding:0 15px 15px;
+}
+
+.eq-item{
+    padding:12px;
+    margin-bottom:8px;
+    border-radius:12px;
+    background:rgba(255,255,255,.045);
+    border-left:3px solid #ff4b4b;
+}
+
+.eq-item strong{
+    font-size:16px;
+}
+
+.eq-item small{
+    display:block;
+    margin-top:5px;
+    color:#8fa7c3;
+}
+
+.alert-card{
+    grid-column:span 6;
+}
+
+.alert-list{
+    padding:15px;
+    max-height:260px;
+    overflow:auto;
+}
+
+.alert{
+    padding:13px;
+    margin-bottom:9px;
+    border-radius:12px;
+    border-left:4px solid;
+    background:rgba(255,255,255,.045);
+}
+
+.alert.normal{
+    border-color:#00e676;
+}
+
+.alert.watch{
+    border-color:#ffe600;
+}
+
+.alert.warning{
+    border-color:#ff9800;
+}
+
+.alert.critical{
+    border-color:#ff3333;
+}
+
+.alert-time{
+    display:block;
+    color:#7e95af;
+    font-size:10px;
+    margin-top:5px;
+}
+
+.commands-card{
+    grid-column:span 6;
+}
+
+.commands{
+    padding:15px;
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:12px;
 }
 
-.control{
-    min-height:105px;
-
-    border-radius:15px;
-
-    border:1px solid var(--line);
-
-    background:
-        linear-gradient(
-            145deg,
-            #14283b,
-            #07111c
-        );
-
+.command-btn{
+    border:none;
+    min-height:75px;
+    border-radius:16px;
     color:white;
-
+    background:
+        linear-gradient(145deg,rgba(30,58,94,.95),rgba(8,20,37,.95));
+    border:1px solid rgba(120,180,255,.18);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        0 8px 20px rgba(0,0,0,.25);
     cursor:pointer;
-
-    box-shadow:
-        5px 6px 12px #000a,
-        inset 1px 1px 3px #29475e;
-
-    transition:.18s;
-}
-
-.control:hover{
-    border-color:#13ddff88;
-    transform:translateY(-3px);
-}
-
-.control:active{
-    transform:translateY(3px);
-
-    box-shadow:
-        inset 5px 5px 12px #000;
-}
-
-.control .icon{
-    display:block;
-    font-size:27px;
-    margin-bottom:8px;
-}
-
-.control small{
-    color:var(--muted);
-}
-
-/* METRICS */
-
-.metrics{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:18px;
-
-    margin-top:20px;
-}
-
-.metric{
-    padding:18px;
-    min-height:145px;
-}
-
-.metricTitle{
-    color:var(--muted);
-    font-size:10px;
-
-    display:flex;
-    justify-content:space-between;
-}
-
-.value{
-    margin-top:18px;
-
-    font-size:29px;
+    transition:.2s;
+    font-size:14px;
     font-weight:bold;
 }
 
-.unit{
-    color:var(--muted);
-    font-size:11px;
+.command-btn:hover{
+    transform:translateY(-2px);
+    border-color:rgba(120,190,255,.5);
+    box-shadow:0 12px 28px rgba(0,0,0,.35);
 }
 
-.bar{
-    height:5px;
-
-    margin-top:16px;
-
-    background:#02070c;
-
-    border-radius:20px;
-
-    overflow:hidden;
+.command-btn:active{
+    transform:scale(.97);
 }
 
-.bar span{
+.command-icon{
     display:block;
-    height:100%;
-    width:50%;
-
-    background:var(--cyan);
-
-    box-shadow:0 0 12px var(--cyan);
+    font-size:27px;
+    margin-bottom:6px;
 }
 
-/* LOWER */
-
-.lower{
-    display:grid;
-    grid-template-columns:1.15fr .85fr;
-    gap:20px;
-
-    margin-top:20px;
+.qr{
+    border-color:rgba(80,180,255,.25);
 }
 
-/* MAP */
-
-.map{
-    height:370px;
-    overflow:hidden;
+.camera{
+    border-color:rgba(100,220,255,.25);
 }
 
-#map{
-    height:315px;
-    width:100%;
+.sos{
+    border-color:rgba(255,70,70,.4);
 }
 
-.leaflet-container{
-    background:#06101a;
+.location{
+    border-color:rgba(80,255,150,.3);
 }
 
-/* HISTORY */
-
-.history{
-    height:315px;
-    overflow:auto;
-    padding:10px;
-}
-
-.historyItem{
-    padding:11px 8px;
-
-    border-bottom:1px solid #183047;
-}
-
-.historyTime{
-    color:#55728a;
-    font-size:9px;
-}
-
-.historyCommand{
-    margin-top:4px;
-    font-size:12px;
-}
-
-.historyResult{
-    margin-top:4px;
-    color:var(--green);
-    font-size:10px;
-}
-
-/* REPORT */
-
-.report{
-    margin-top:20px;
-}
-
-.reportBody{
-    padding:18px;
-}
-
-.fileBox{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-}
-
-.fileInput{
-    padding:12px;
-
-    border:1px dashed #31506a;
-    border-radius:12px;
-
-    color:#8ca5ba;
-
-    background:#07121d;
-}
-
-.action{
-    border:1px solid var(--line);
-
-    border-radius:10px;
-
-    background:#102235;
-
-    color:white;
-
-    padding:10px 15px;
-
-    cursor:pointer;
-}
-
-.action:hover{
-    border-color:var(--cyan);
-}
-
-.reportText{
-    margin-top:15px;
-
-    color:#86a0b6;
-
-    font-size:11px;
-
-    line-height:1.8;
-}
-
-/* ALERT */
-
-.alertMode{
-    position:fixed;
-    inset:0;
-
-    z-index:5000;
-
-    pointer-events:none;
-
-    border:10px solid transparent;
-}
-
-.alertMode.active{
-    animation:emergencyFlash .6s infinite;
-}
-
-@keyframes emergencyFlash{
-
-    0%,100%{
-        border-color:transparent;
-    }
-
-    50%{
-        border-color:#ff244c;
-        box-shadow:
-            inset 0 0 100px #ff003344;
-    }
-
-}
-
-/* MODAL */
-
-.modal{
-    position:fixed;
-    inset:0;
-
-    display:none;
-    justify-content:center;
-    align-items:center;
-
-    background:#000b;
-
-    z-index:4000;
-
+.footer{
+    text-align:center;
+    color:#647d9b;
     padding:20px;
+    font-size:11px;
 }
 
-.modal.show{
-    display:flex;
-}
-
-.modalBox{
-    width:min(600px,100%);
-
-    background:#0a1623;
-
-    border:1px solid var(--line);
-
-    border-radius:18px;
-
-    padding:22px;
-
-    box-shadow:0 25px 70px #000;
-}
-
-.modalBox h2{
-    font-size:17px;
-    margin-bottom:12px;
-}
-
-.modalBox p{
-    color:#87a0b5;
+.status-bar{
+    margin-top:15px;
+    padding:12px 15px;
+    border-radius:12px;
+    background:rgba(255,255,255,.04);
+    color:#9bb2cb;
     font-size:12px;
-    line-height:1.7;
 }
-
-.close{
-    margin-top:18px;
-
-    border:0;
-
-    border-radius:10px;
-
-    background:#173047;
-
-    color:white;
-
-    padding:10px 20px;
-
-    cursor:pointer;
-}
-
-/* MOBILE */
 
 @media(max-width:1000px){
-
-    .top,
-    .lower{
-        grid-template-columns:1fr;
+    .map-card,
+    .info-card,
+    .graph-card,
+    .earthquake-card,
+    .alert-card,
+    .commands-card{
+        grid-column:span 12;
     }
 
-    .metrics{
-        grid-template-columns:1fr 1fr;
+    #map{
+        height:400px;
     }
-
 }
 
 @media(max-width:600px){
-
-    header{
-        padding:0 12px;
-    }
-
-    .logo h1{
-        font-size:13px;
-    }
-
     .container{
         padding:10px;
     }
 
-    .metrics{
-        grid-template-columns:1fr;
+    .header-inner{
+        align-items:flex-start;
+        flex-direction:column;
     }
 
-    .controlGrid{
+    .metrics{
         grid-template-columns:1fr 1fr;
     }
 
-}
+    .commands{
+        grid-template-columns:1fr;
+    }
 
+    #map{
+        height:350px;
+    }
+}
 </style>
 </head>
 
-
 <body>
 
-<div id="alertMode" class="alertMode"></div>
-
-
-<header>
-
-    <div class="logo">
-
-        <div class="logoIcon">
-            ☣
+<header class="header">
+    <div class="header-inner">
+        <div class="logo-area">
+            <h1>CBRND WEATHER MONITORING COMMAND CENTER</h1>
+            <p>Live Weather • Environment • Earthquake Monitoring</p>
         </div>
 
-        <div>
-
-            <h1>
-                CBRND COMMAND CENTER
-            </h1>
-
-            <p>
-                REAL BROWSER COMMAND SYSTEM • V2
-            </p>
-
+        <div class="live-status">
+            <span class="live-dot"></span>
+            LIVE MONITORING
         </div>
-
     </div>
-
-
-    <div class="online">
-
-        <span class="onlineDot"></span>
-
-        SYSTEM ONLINE
-
-    </div>
-
 </header>
-
 
 <main class="container">
 
+<div class="dashboard-grid">
 
-    <!-- TOP -->
+    <!-- MAP -->
+    <section class="card map-card">
 
-    <section class="top">
+        <div class="card-title">
+            🌍 LIVE WEATHER / EARTHQUAKE MAP
+        </div>
+
+        <div id="map"></div>
+
+    </section>
 
 
-        <!-- VOICE -->
+    <!-- WEATHER -->
+    <section class="card info-card">
 
-        <div class="panel voice">
+        <div class="card-title">
+            🌦️ LIVE WEATHER
+        </div>
 
-            <h2>
-                🎤 VOICE COMMAND
-            </h2>
+        <div class="metrics">
 
-            <div class="voiceSubtitle">
-                Hindi + English Voice Control
+            <div class="metric">
+                <div class="metric-icon">🌡️</div>
+                <div class="metric-label">TEMPERATURE</div>
+                <div class="metric-value" id="temperature">--</div>
+                <span class="metric-unit">°C</span>
             </div>
 
-
-            <div class="micArea">
-
-                <div class="ring ring1"></div>
-                <div class="ring ring2"></div>
-                <div class="ring ring3"></div>
-
-
-                <button
-                    id="mic"
-                    class="mic">
-
-                    🎤
-
-                </button>
-
+            <div class="metric">
+                <div class="metric-icon">🧭</div>
+                <div class="metric-label">PRESSURE</div>
+                <div class="metric-value" id="pressure">--</div>
+                <span class="metric-unit">hPa</span>
             </div>
 
-
-            <div
-                id="voiceStatus"
-                class="voiceStatus">
-
-                Click microphone to speak
-
+            <div class="metric">
+                <div class="metric-icon">💧</div>
+                <div class="metric-label">HUMIDITY</div>
+                <div class="metric-value" id="humidity">--</div>
+                <span class="metric-unit">%</span>
             </div>
 
+            <div class="metric">
+                <div class="metric-icon">💨</div>
+                <div class="metric-label">WIND</div>
+                <div class="metric-value" id="wind">--</div>
+                <span class="metric-unit">km/h</span>
+            </div>
 
-            <div class="commandExample">
+            <div class="metric">
+                <div class="metric-icon">🌧️</div>
+                <div class="metric-label">RAIN</div>
+                <div class="metric-value" id="rain">--</div>
+                <span class="metric-unit">mm</span>
+            </div>
 
-                Try:
-                <b>Open map</b> •
-                <b>नक्शा खोलो</b> •
-                <b>Start siren</b> •
-                <b>सायरन चालू करो</b> •
-                <b>Show location</b>
-
+            <div class="metric">
+                <div class="metric-icon">☁️</div>
+                <div class="metric-label">CLOUD COVER</div>
+                <div class="metric-value" id="cloud">--</div>
+                <span class="metric-unit">%</span>
             </div>
 
         </div>
 
+        <div class="status-bar" id="weatherStatus">
+            Connecting to live weather service...
+        </div>
 
-        <!-- CONTROLS -->
+    </section>
 
-        <div class="panel">
 
-            <div class="panelHeader">
+    <!-- GRAPH -->
+    <section class="card graph-card">
 
-                <h2>
-                    REAL COMMANDS
-                </h2>
+        <div class="card-title">
+            📊 ENVIRONMENT CHANGE — 24 HOUR
+        </div>
 
-                <span>
-                    NO API KEY
-                </span>
+        <div class="chart-wrap">
+            <canvas id="weatherChart"></canvas>
+        </div>
 
+    </section>
+
+
+    <!-- EARTHQUAKE -->
+    <section class="card earthquake-card">
+
+        <div class="card-title">
+            🔴 LIVE EARTHQUAKE MONITOR
+        </div>
+
+        <div class="eq-summary">
+
+            <div class="eq-box">
+                <div class="eq-number" id="eqCount">--</div>
+                <div class="eq-label">EARTHQUAKES / 24H</div>
             </div>
 
+            <div class="eq-box">
+                <div class="eq-number" id="maxMagnitude">--</div>
+                <div class="eq-label">MAX MAGNITUDE</div>
+            </div>
 
-            <div class="controls">
+        </div>
 
-                <div class="controlGrid">
+        <div class="earthquake-list" id="earthquakeList">
+            Loading earthquake data...
+        </div>
 
-
-                    <button
-                        class="control"
-                        onclick="openMap()">
-
-                        <span class="icon">🗺️</span>
-
-                        MAP
-
-                        <br>
-
-                        <small>
-                            Open live map
-                        </small>
-
-                    </button>
+    </section>
 
 
-                    <button
-                        class="control"
-                        onclick="getGPS()">
+    <!-- ALERTS -->
+    <section class="card alert-card">
 
-                        <span class="icon">📍</span>
+        <div class="card-title">
+            🚨 AUTOMATIC ALERTS
+        </div>
 
-                        GPS
+        <div class="alert-list" id="alertList">
 
-                        <br>
-
-                        <small>
-                            Get real location
-                        </small>
-
-                    </button>
-
-
-                    <button
-                        class="control"
-                        onclick="activateAlert()">
-
-                        <span class="icon">🚨</span>
-
-                        ALERT
-
-                        <br>
-
-                        <small>
-                            Emergency alert
-                        </small>
-
-                    </button>
-
-
-                    <button
-                        class="control"
-                        onclick="toggleSiren()">
-
-                        <span class="icon">🔊</span>
-
-                        SIREN
-
-                        <br>
-
-                        <small id="sirenText">
-                            Start siren
-                        </small>
-
-                    </button>
-
-
-                    <button
-                        class="control"
-                        onclick="openReport()">
-
-                        <span class="icon">📊</span>
-
-                        REPORT
-
-                        <br>
-
-                        <small>
-                            View imported data
-                        </small>
-
-                    </button>
-
-
-                    <button
-                        class="control"
-                        onclick="stopEverything()">
-
-                        <span class="icon">⛔</span>
-
-                        STOP
-
-                        <br>
-
-                        <small>
-                            Stop active systems
-                        </small>
-
-                    </button>
-
-
-                </div>
-
+            <div class="alert normal">
+                🟢 Monitoring system initialized
+                <span class="alert-time">Waiting for live observations</span>
             </div>
 
         </div>
@@ -961,2175 +524,732 @@ header{
     </section>
 
 
-    <!-- METRICS -->
+    <!-- COMMANDS -->
+    <section class="card commands-card">
 
-    <section class="metrics">
-
-
-        <div class="panel metric">
-
-            <div class="metricTitle">
-
-                TEMPERATURE
-
-                🌡️
-
-            </div>
-
-            <div class="value">
-
-                <span id="temp">
-                    --
-                </span>
-
-                <span class="unit">
-                    °C
-                </span>
-
-            </div>
-
-            <div class="bar">
-
-                <span
-                    id="tempBar"
-                    style="width:0%">
-                </span>
-
-            </div>
-
+        <div class="card-title">
+            ⚡ QUICK COMMANDS
         </div>
 
-
-        <div class="panel metric">
-
-            <div class="metricTitle">
-
-                RADIATION
-
-                ☢️
-
-            </div>
-
-            <div class="value">
-
-                <span id="radiation">
-                    --
-                </span>
-
-                <span class="unit">
-                    µSv/h
-                </span>
-
-            </div>
-
-            <div class="bar">
-
-                <span
-                    id="radiationBar"
-                    style="width:0%">
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <div class="panel metric">
-
-            <div class="metricTitle">
-
-                AIR QUALITY
-
-                💨
-
-            </div>
-
-            <div class="value">
-
-                <span id="aqi">
-                    --
-                </span>
-
-                <span class="unit">
-                    AQI
-                </span>
-
-            </div>
-
-            <div class="bar">
-
-                <span
-                    id="aqiBar"
-                    style="width:0%">
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <div class="panel metric">
-
-            <div class="metricTitle">
-
-                GPS STATUS
-
-                📡
-
-            </div>
-
-            <div class="value">
-
-                <span id="gpsState">
-                    READY
-                </span>
-
-            </div>
-
-            <div class="bar">
-
-                <span
-                    id="gpsBar"
-                    style="width:10%">
-                </span>
-
-            </div>
-
-        </div>
-
-
-    </section>
-
-
-    <!-- MAP + HISTORY -->
-
-    <section class="lower">
-
-
-        <div class="panel map">
-
-            <div class="panelHeader">
-
-                <h2>
-                    LIVE GPS MAP
-                </h2>
-
-                <span id="mapStatus">
-                    READY
-                </span>
-
-            </div>
-
-
-            <div id="map"></div>
-
-        </div>
-
-
-        <div class="panel">
-
-            <div class="panelHeader">
-
-                <h2>
-                    COMMAND HISTORY
-                </h2>
-
-                <button
-                    class="action"
-                    onclick="clearHistory()">
-
-                    CLEAR
-
-                </button>
-
-            </div>
-
-
-            <div
-                id="history"
-                class="history">
-            </div>
-
-        </div>
-
-
-    </section>
-
-
-    <!-- REPORT -->
-
-    <section
-        id="reportSection"
-        class="panel report">
-
-        <div class="panelHeader">
-
-            <h2>
-                📊 ENVIRONMENT REPORT
-            </h2>
-
-            <span>
-                CSV DATA ENGINE
-            </span>
-
-        </div>
-
-
-        <div class="reportBody">
-
-
-            <div class="fileBox">
-
-                <input
-                    id="csvFile"
-                    class="fileInput"
-                    type="file"
-                    accept=".csv,text/csv">
-
-
-                <button
-                    class="action"
-                    onclick="processCSV()">
-
-                    LOAD CSV
-
-                </button>
-
-
-                <button
-                    class="action"
-                    onclick="exportReport()">
-
-                    EXPORT REPORT
-
-                </button>
-
-            </div>
-
-
-            <div
-                id="reportText"
-                class="reportText">
-
-                No CSV loaded.
-
-                <br>
-
-                Example columns:
-
-                Date, Temperature, Radiation, AQI
-
-            </div>
+        <div class="commands">
+
+            <button class="command-btn qr" onclick="openApp('qr')">
+                <span class="command-icon">📱</span>
+                QR GENERATOR
+            </button>
+
+            <button class="command-btn camera" onclick="openApp('camera')">
+                <span class="command-icon">📷</span>
+                HD SMART CAMERA
+            </button>
+
+            <button class="command-btn sos" onclick="openApp('sos')">
+                <span class="command-icon">🚨</span>
+                SOS SIREN
+            </button>
+
+            <button class="command-btn location" onclick="openApp('location')">
+                <span class="command-icon">📍</span>
+                LIVE LOCATION
+            </button>
 
         </div>
 
     </section>
-
-
-</main>
-
-
-<!-- MODAL -->
-
-<div
-    id="modal"
-    class="modal">
-
-    <div class="modalBox">
-
-        <h2 id="modalTitle">
-            CBRND
-        </h2>
-
-        <p id="modalText">
-        </p>
-
-        <button
-            class="close"
-            onclick="closeModal()">
-
-            CLOSE
-
-        </button>
-
-    </div>
 
 </div>
 
+</main>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<footer class="footer">
+    CBRND Weather Monitoring Command Center • Live Data Dashboard
+</footer>
 
 
 <script>
 
-/* =========================================
-   GLOBAL VARIABLES
-========================================= */
+/* =====================================================
+   QUICK APPLICATION LINKS
+   ===================================================== */
 
-let map;
-let gpsMarker;
-let gpsCircle;
+const APP_LINKS = {
 
-let sirenOscillator = null;
-let sirenGain = null;
-let audioContext = null;
+    /* अपना QR Generator URL यहाँ डालें */
+    qr: "YOUR_QR_GENERATOR_URL",
 
-let alertActive = false;
+    /* आपका दिया हुआ HD Smart Camera */
+    camera: "https://somchandtrust-boo.github.io/hd-smart-camera/",
 
-let recognition = null;
-let listening = false;
+    /* अपना SOS Siren URL यहाँ डालें */
+    sos: "YOUR_SOS_SIREN_URL",
 
-let lastReport = null;
+    /* अपना Live Location URL यहाँ डालें */
+    location: "YOUR_LIVE_LOCATION_URL"
 
-
-/* =========================================
-   MAP INITIALIZATION
-========================================= */
-
-function initMap(){
-
-    map = L.map("map").setView(
-        [23.0225,72.5714],
-        10
-    );
+};
 
 
-    L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-            maxZoom:19,
-            attribution:
-                '&copy; OpenStreetMap contributors'
-        }
-    ).addTo(map);
+/* =====================================================
+   OPEN QUICK APP
+   ===================================================== */
 
+function openApp(type){
 
-    L.marker(
-        [23.0225,72.5714]
-    )
-    .addTo(map)
-    .bindPopup(
-        "CBRND Dashboard Start Location"
-    );
+    const url = APP_LINKS[type];
 
-}
+    if(!url || url.startsWith("YOUR_")){
 
-
-/* =========================================
-   OPEN MAP
-========================================= */
-
-function openMap(){
-
-    document
-        .getElementById("mapStatus")
-        .innerText =
-        "MAP ACTIVE";
-
-
-    map.invalidateSize();
-
-
-    document
-        .getElementById("map")
-        .scrollIntoView({
-            behavior:"smooth",
-            block:"center"
-        });
-
-
-    addHistory(
-        "MAP",
-        "LIVE MAP OPENED"
-    );
-
-
-    speak(
-        "Live map is now open."
-    );
-
-}
-
-
-/* =========================================
-   GPS
-========================================= */
-
-function getGPS(){
-
-    if(!navigator.geolocation){
-
-        showModal(
-            "GPS ERROR",
-            "This browser does not support GPS."
+        addAlert(
+            "watch",
+            "⚠️ " + type.toUpperCase() +
+            " link अभी configure नहीं किया गया है."
         );
 
         return;
-
     }
 
-
-    document
-        .getElementById("gpsState")
-        .innerText =
-        "SEARCHING";
+    window.open(url,"_blank");
+}
 
 
-    document
-        .getElementById("gpsBar")
-        .style.width =
-        "50%";
+/* =====================================================
+   LOCATION
+   Ahmedabad default
+   ===================================================== */
 
+let LAT = 23.0225;
+let LON = 72.5714;
+
+let userMarker = null;
+
+
+/* =====================================================
+   LEAFLET MAP
+   ===================================================== */
+
+const map = L.map("map").setView(
+    [LAT,LON],
+    7
+);
+
+L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+        maxZoom:19,
+        attribution:"© OpenStreetMap contributors"
+    }
+).addTo(map);
+
+
+userMarker = L.marker([LAT,LON])
+    .addTo(map)
+    .bindPopup(
+        "<b>Monitoring Location</b><br>Ahmedabad, Gujarat"
+    )
+    .openPopup();
+
+
+/* =====================================================
+   TRY GPS
+   ===================================================== */
+
+if(navigator.geolocation){
 
     navigator.geolocation.getCurrentPosition(
-
         position => {
 
-            const lat =
-                position.coords.latitude;
+            LAT = position.coords.latitude;
+            LON = position.coords.longitude;
 
-            const lon =
-                position.coords.longitude;
+            map.setView([LAT,LON],10);
 
-            const accuracy =
-                position.coords.accuracy;
-
-
-            document
-                .getElementById("gpsState")
-                .innerText =
-                "ACTIVE";
-
-
-            document
-                .getElementById("gpsBar")
-                .style.width =
-                "100%";
-
-
-            document
-                .getElementById("mapStatus")
-                .innerText =
-                "GPS LOCK";
-
-
-            if(gpsMarker){
-
-                map.removeLayer(
-                    gpsMarker
-                );
-
-            }
-
-
-            if(gpsCircle){
-
-                map.removeLayer(
-                    gpsCircle
-                );
-
-            }
-
-
-            gpsMarker =
-                L.marker([lat,lon])
-                .addTo(map)
-                .bindPopup(
-                    `
-                    <b>CBRND GPS</b><br>
-                    Latitude: ${lat.toFixed(6)}<br>
-                    Longitude: ${lon.toFixed(6)}<br>
-                    Accuracy: ${accuracy.toFixed(1)} m
-                    `
-                )
+            userMarker
+                .setLatLng([LAT,LON])
+                .bindPopup("<b>Current GPS Location</b>")
                 .openPopup();
 
-
-            gpsCircle =
-                L.circle(
-                    [lat,lon],
-                    {
-                        radius:accuracy
-                    }
-                )
-                .addTo(map);
-
-
-            map.setView(
-                [lat,lon],
-                16
-            );
-
-
-            addHistory(
-                "GPS",
-                `LAT ${lat.toFixed(5)} / LON ${lon.toFixed(5)}`
-            );
-
-
-            speak(
-                "GPS location received."
-            );
+            loadWeather();
 
         },
 
-        error => {
+        () => {
 
-            document
-                .getElementById("gpsState")
-                .innerText =
-                "ERROR";
-
-
-            document
-                .getElementById("gpsBar")
-                .style.width =
-                "0%";
-
-
-            let msg =
-                "GPS permission or signal error.";
-
-
-            if(error.code === 1){
-
-                msg =
-                    "Location permission was denied.";
-
-            }
-
-
-            if(error.code === 2){
-
-                msg =
-                    "Location is unavailable.";
-
-            }
-
-
-            if(error.code === 3){
-
-                msg =
-                    "GPS request timed out.";
-
-            }
-
-
-            addHistory(
-                "GPS",
-                msg
-            );
-
-
-            speak(msg);
+            loadWeather();
 
         },
 
         {
             enableHighAccuracy:true,
-            timeout:15000,
-            maximumAge:0
+            timeout:8000
         }
-
     );
 
-}
+}else{
 
-
-/* =========================================
-   SIREN
-========================================= */
-
-function toggleSiren(){
-
-    if(sirenOscillator){
-
-        stopSiren();
-
-    }else{
-
-        startSiren();
-
-    }
+    loadWeather();
 
 }
 
 
-function startSiren(){
+/* =====================================================
+   WEATHER DATA
+   Open-Meteo
+   ===================================================== */
+
+let previousWeather = null;
+
+async function loadWeather(){
 
     try{
 
-        audioContext =
-            audioContext ||
-            new (
-                window.AudioContext ||
-                window.webkitAudioContext
-            )();
+        const url =
+        "https://api.open-meteo.com/v1/forecast" +
+        "?latitude=" + LAT +
+        "&longitude=" + LON +
+        "&current=" +
+        "temperature_2m," +
+        "relative_humidity_2m," +
+        "surface_pressure," +
+        "wind_speed_10m," +
+        "precipitation," +
+        "cloud_cover" +
+        "&hourly=" +
+        "temperature_2m," +
+        "surface_pressure," +
+        "relative_humidity_2m" +
+        "&forecast_days=1" +
+        "&timezone=auto";
 
+        const response = await fetch(url);
 
-        if(audioContext.state === "suspended"){
+        if(!response.ok)
+            throw new Error("Weather API error");
 
-            audioContext.resume();
+        const data = await response.json();
 
-        }
+        updateWeather(data);
 
+        analyzeWeather(data.current);
 
-        sirenOscillator =
-            audioContext.createOscillator();
+        createWeatherGraph(data);
 
+        document.getElementById("weatherStatus")
+            .textContent =
+            "🟢 Live weather connected • " +
+            new Date().toLocaleTimeString();
 
-        sirenGain =
-            audioContext.createGain();
+    }
 
+    catch(error){
 
-        sirenOscillator.type =
-            "sawtooth";
+        console.error(error);
 
+        document.getElementById("weatherStatus")
+            .textContent =
+            "🔴 Weather service connection failed";
 
-        sirenGain.gain.value =
-            0.07;
-
-
-        sirenOscillator.connect(
-            sirenGain
+        addAlert(
+            "warning",
+            "Weather data connection problem"
         );
 
+    }
 
-        sirenGain.connect(
-            audioContext.destination
+}
+
+
+/* =====================================================
+   UPDATE WEATHER
+   ===================================================== */
+
+function updateWeather(current){
+
+    document.getElementById("temperature")
+        .textContent =
+        round(current.temperature_2m);
+
+    document.getElementById("pressure")
+        .textContent =
+        round(current.surface_pressure);
+
+    document.getElementById("humidity")
+        .textContent =
+        round(current.relative_humidity_2m);
+
+    document.getElementById("wind")
+        .textContent =
+        round(current.wind_speed_10m);
+
+    document.getElementById("rain")
+        .textContent =
+        round(current.precipitation);
+
+    document.getElementById("cloud")
+        .textContent =
+        round(current.cloud_cover);
+
+}
+
+
+/* =====================================================
+   WEATHER CHANGE ANALYSIS
+   ===================================================== */
+
+function analyzeWeather(current){
+
+    if(!previousWeather){
+
+        previousWeather = current;
+
+        addAlert(
+            "normal",
+            "🟢 Initial weather observation recorded"
         );
 
-
-        sirenOscillator.start();
-
-
-        let high = false;
+        return;
+    }
 
 
-        window.sirenTimer =
-            setInterval(()=>{
-
-                if(!sirenOscillator)
-                    return;
+    const tempChange =
+        current.temperature_2m -
+        previousWeather.temperature_2m;
 
 
-                sirenOscillator.frequency
-                    .setTargetAtTime(
-                        high ? 550 : 950,
-                        audioContext.currentTime,
-                        .04
-                    );
+    const pressureChange =
+        current.surface_pressure -
+        previousWeather.surface_pressure;
 
 
-                high = !high;
+    const humidityChange =
+        current.relative_humidity_2m -
+        previousWeather.relative_humidity_2m;
 
-            },450);
+
+    if(Math.abs(tempChange) >= 3){
+
+        addAlert(
+            "watch",
+            "🟡 Temperature change detected: " +
+            tempChange.toFixed(1) + " °C"
+        );
+
+    }
 
 
+    if(Math.abs(pressureChange) >= 5){
+
+        const level =
+            pressureChange < 0
+            ? "warning"
+            : "watch";
+
+        addAlert(
+            level,
+            "🧭 Atmospheric pressure change: " +
+            pressureChange.toFixed(1) +
+            " hPa"
+        );
+
+    }
+
+
+    if(Math.abs(humidityChange) >= 15){
+
+        addAlert(
+            "watch",
+            "💧 Significant humidity change: " +
+            humidityChange.toFixed(1) + "%"
+        );
+
+    }
+
+
+    previousWeather = current;
+
+}
+
+
+/* =====================================================
+   WEATHER GRAPH
+   ===================================================== */
+
+let weatherChart = null;
+
+function createWeatherGraph(data){
+
+    const labels =
+        data.hourly.time.map(
+            t => new Date(t).toLocaleTimeString(
+                [],
+                {
+                    hour:"2-digit",
+                    minute:"2-digit"
+                }
+            )
+        );
+
+    const temps =
+        data.hourly.temperature_2m;
+
+    const pressure =
+        data.hourly.surface_pressure;
+
+    const humidity =
+        data.hourly.relative_humidity_2m;
+
+
+    const ctx =
         document
-            .getElementById("sirenText")
-            .innerText =
-            "Stop siren";
+        .getElementById("weatherChart")
+        .getContext("2d");
 
 
-        addHistory(
-            "SIREN",
-            "ACTIVATED"
-        );
+    if(weatherChart)
+        weatherChart.destroy();
 
 
-        speak(
-            "Siren activated."
-        );
+    weatherChart =
+        new Chart(ctx,{
 
-    }catch(error){
+            type:"line",
 
-        showModal(
-            "AUDIO ERROR",
-            "Browser could not start the audio system."
-        );
+            data:{
 
-    }
+                labels:labels,
 
-}
+                datasets:[
 
+                    {
+                        label:"Temperature °C",
+                        data:temps,
+                        tension:.35,
+                        borderWidth:2,
+                        yAxisID:"temp"
+                    },
 
-function stopSiren(){
+                    {
+                        label:"Pressure hPa",
+                        data:pressure,
+                        tension:.35,
+                        borderWidth:2,
+                        yAxisID:"pressure"
+                    },
 
-    if(window.sirenTimer){
+                    {
+                        label:"Humidity %",
+                        data:humidity,
+                        tension:.35,
+                        borderWidth:2,
+                        yAxisID:"humidity"
+                    }
 
-        clearInterval(
-            window.sirenTimer
-        );
+                ]
 
-        window.sirenTimer =
-            null;
+            },
 
-    }
+            options:{
 
+                responsive:true,
 
-    if(sirenOscillator){
+                maintainAspectRatio:false,
 
-        try{
+                interaction:{
+                    mode:"index",
+                    intersect:false
+                },
 
-            sirenOscillator.stop();
+                scales:{
 
-        }catch(e){}
+                    temp:{
+                        type:"linear",
+                        position:"left"
+                    },
 
-        sirenOscillator =
-            null;
+                    pressure:{
+                        type:"linear",
+                        position:"right",
+                        grid:{
+                            drawOnChartArea:false
+                        }
+                    },
 
-    }
+                    humidity:{
+                        type:"linear",
+                        position:"right",
+                        grid:{
+                            drawOnChartArea:false
+                        }
+                    }
 
+                },
 
-    sirenGain =
-        null;
+                plugins:{
 
+                    legend:{
+                        labels:{
+                            color:"#fff"
+                        }
+                    }
 
-    document
-        .getElementById("sirenText")
-        .innerText =
-        "Start siren";
+                }
 
+            }
 
-    addHistory(
-        "SIREN",
-        "STOPPED"
-    );
-
-}
-
-
-/* =========================================
-   EMERGENCY ALERT
-========================================= */
-
-function activateAlert(){
-
-    alertActive =
-        !alertActive;
-
-
-    const alertMode =
-        document.getElementById(
-            "alertMode"
-        );
-
-
-    if(alertActive){
-
-        alertMode.classList.add(
-            "active"
-        );
-
-
-        addHistory(
-            "EMERGENCY ALERT",
-            "ACTIVATED"
-        );
-
-
-        speak(
-            "Emergency alert activated."
-        );
-
-
-        showModal(
-            "🚨 EMERGENCY ALERT",
-            "Local browser emergency alert is active. Press STOP to deactivate."
-        );
-
-    }else{
-
-        deactivateAlert();
-
-    }
-
-}
-
-
-function deactivateAlert(){
-
-    alertActive =
-        false;
-
-
-    document
-        .getElementById("alertMode")
-        .classList.remove(
-            "active"
-        );
-
-
-    addHistory(
-        "EMERGENCY ALERT",
-        "DEACTIVATED"
-    );
-
-}
-
-
-/* =========================================
-   STOP EVERYTHING
-========================================= */
-
-function stopEverything(){
-
-    stopSiren();
-
-    deactivateAlert();
-
-
-    if(
-        recognition &&
-        listening
-    ){
-
-        recognition.stop();
-
-    }
-
-
-    if(
-        window.speechSynthesis
-    ){
-
-        speechSynthesis.cancel();
-
-    }
-
-
-    document
-        .getElementById("voiceStatus")
-        .innerText =
-        "All active systems stopped";
-
-
-    addHistory(
-        "STOP ALL",
-        "ALL ACTIVE FUNCTIONS STOPPED"
-    );
-
-}
-
-
-/* =========================================
-   REPORT
-========================================= */
-
-function openReport(){
-
-    document
-        .getElementById(
-            "reportSection"
-        )
-        .scrollIntoView({
-            behavior:"smooth",
-            block:"center"
         });
 
-
-    addHistory(
-        "REPORT",
-        "REPORT PANEL OPENED"
-    );
-
-
-    speak(
-        "Report panel is open."
-    );
-
 }
 
 
-/* =========================================
-   CSV PROCESSOR
-========================================= */
+/* =====================================================
+   EARTHQUAKE DATA
+   USGS
+   ===================================================== */
 
-function processCSV(){
+async function loadEarthquakes(){
 
-    const file =
-        document.getElementById(
-            "csvFile"
-        ).files[0];
+    try{
 
+        const url =
+        "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
 
-    if(!file){
+        const response =
+            await fetch(url);
 
-        showModal(
-            "CSV REQUIRED",
-            "Please select a CSV file first."
-        );
+        if(!response.ok)
+            throw new Error("USGS error");
 
-        return;
+        const data =
+            await response.json();
+
+        displayEarthquakes(data);
 
     }
 
+    catch(error){
 
-    const reader =
-        new FileReader();
+        console.error(error);
 
+        document.getElementById("earthquakeList")
+            .textContent =
+            "Unable to load earthquake data.";
 
-    reader.onload =
-        function(event){
-
-            const text =
-                event.target.result;
-
-
-            const rows =
-                parseCSV(text);
-
-
-            if(rows.length < 2){
-
-                showModal(
-                    "CSV ERROR",
-                    "CSV does not contain enough data."
-                );
-
-                return;
-
-            }
-
-
-            const headers =
-                rows[0].map(
-                    h => h.trim().toLowerCase()
-                );
-
-
-            const data =
-                rows
-                .slice(1)
-                .map(row => {
-
-                    const obj = {};
-
-                    headers.forEach(
-                        (header,index) => {
-
-                            obj[header] =
-                                row[index] || "";
-
-                        }
-                    );
-
-                    return obj;
-
-                });
-
-
-            lastReport =
-                data;
-
-
-            updateMetrics(
-                data
-            );
-
-
-            generateReport(
-                data
-            );
-
-
-            addHistory(
-                "CSV REPORT",
-                `${data.length} records loaded`
-            );
-
-
-            speak(
-                "CSV report loaded successfully."
-            );
-
-        };
-
-
-    reader.readAsText(file);
+    }
 
 }
 
 
-/* =========================================
-   SIMPLE CSV PARSER
-========================================= */
+/* =====================================================
+   DISPLAY EARTHQUAKES
+   ===================================================== */
 
-function parseCSV(text){
+function displayEarthquakes(data){
 
-    const lines =
-        text
-        .replace(/\r/g,"")
-        .split("\n")
-        .filter(
-            line => line.trim() !== ""
-        );
+    const list =
+        document.getElementById("earthquakeList");
+
+    list.innerHTML = "";
 
 
-    return lines.map(
-        line => {
-
-            const result = [];
-
-            let current = "";
-
-            let insideQuotes = false;
+    const features =
+        data.features || [];
 
 
-            for(
-                let i=0;
-                i<line.length;
-                i++
-            ){
-
-                const char =
-                    line[i];
+    document.getElementById("eqCount")
+        .textContent =
+        features.length;
 
 
-                if(char === '"'){
+    let maxMag = 0;
 
-                    insideQuotes =
-                        !insideQuotes;
 
+    features.forEach(eq => {
+
+        const p = eq.properties;
+        const c = eq.geometry.coordinates;
+
+        const magnitude =
+            Number(p.mag || 0);
+
+        if(magnitude > maxMag)
+            maxMag = magnitude;
+
+
+        const lat = c[1];
+        const lon = c[0];
+        const depth = c[2];
+
+
+        const marker =
+            L.circleMarker(
+                [lat,lon],
+                {
+                    radius:
+                        Math.max(
+                            5,
+                            Math.min(
+                                18,
+                                magnitude * 3
+                            )
+                        ),
+
+                    weight:1,
+
+                    fillOpacity:.65
                 }
-                else if(
-                    char === "," &&
-                    !insideQuotes
-                ){
-
-                    result.push(
-                        current.trim()
-                    );
-
-                    current = "";
-
-                }
-                else{
-
-                    current += char;
-
-                }
-
-            }
+            ).addTo(map);
 
 
-            result.push(
-                current.trim()
-            );
+        marker.bindPopup(
 
+            "<b>Earthquake</b><br>" +
+            "Magnitude: " +
+            magnitude +
+            "<br>Depth: " +
+            depth +
+            " km<br>" +
+            (p.place || "Unknown location")
 
-            return result;
-
-        }
-    );
-
-}
-
-
-/* =========================================
-   UPDATE METRICS
-========================================= */
-
-function updateMetrics(data){
-
-    const temp =
-        findNumber(
-            data,
-            [
-                "temperature",
-                "temp",
-                "temperature_c"
-            ]
         );
 
 
-    const radiation =
-        findNumber(
-            data,
-            [
-                "radiation",
-                "usv/h",
-                "usv_h",
-                "µsv/h",
-                "usv"
-            ]
-        );
+        const item =
+            document.createElement("div");
 
+        item.className =
+            "eq-item";
 
-    const aqi =
-        findNumber(
-            data,
-            [
-                "aqi",
-                "air_quality_index"
-            ]
-        );
 
+        item.innerHTML =
 
-    if(temp.length){
+            "<strong>🔴 M" +
+            magnitude.toFixed(1) +
+            "</strong>" +
 
-        const value =
-            average(temp);
+            "<small>" +
+            (p.place || "Unknown location") +
+            "</small>" +
 
+            "<small>" +
+            "Depth: " +
+            Number(depth).toFixed(1) +
+            " km" +
+            "</small>" +
 
-        document
-            .getElementById("temp")
-            .innerText =
-            value.toFixed(2);
+            "<small>" +
+            new Date(p.time)
+                .toLocaleString() +
+            "</small>";
 
 
-        document
-            .getElementById("tempBar")
-            .style.width =
-            Math.min(
-                100,
-                Math.max(
-                    0,
-                    value / 50 * 100
-                )
-            ) + "%";
+        list.appendChild(item);
 
-    }
 
+        if(magnitude >= 5){
 
-    if(radiation.length){
-
-        const value =
-            average(radiation);
-
-
-        document
-            .getElementById("radiation")
-            .innerText =
-            value.toFixed(4);
-
-
-        document
-            .getElementById("radiationBar")
-            .style.width =
-            Math.min(
-                100,
-                value / 1 * 100
-            ) + "%";
-
-    }
-
-
-    if(aqi.length){
-
-        const value =
-            average(aqi);
-
-
-        document
-            .getElementById("aqi")
-            .innerText =
-            value.toFixed(0);
-
-
-        document
-            .getElementById("aqiBar")
-            .style.width =
-            Math.min(
-                100,
-                value / 500 * 100
-            ) + "%";
-
-    }
-
-}
-
-
-/* =========================================
-   FIND NUMBER COLUMN
-========================================= */
-
-function findNumber(data,names){
-
-    const found = [];
-
-
-    for(const obj of data){
-
-        let value = null;
-
-
-        for(const name of names){
-
-            if(
-                Object.prototype
-                .hasOwnProperty
-                .call(obj,name)
-            ){
-
-                value =
-                    parseFloat(
-                        String(
-                            obj[name]
-                        ).replace(
-                            /[^0-9.-]/g,
-                            ""
-                        )
-                    );
-
-                break;
-
-            }
-
-        }
-
-
-        if(
-            Number.isFinite(value)
-        ){
-
-            found.push(value);
-
-        }
-
-    }
-
-
-    return found;
-
-}
-
-
-/* =========================================
-   AVERAGE
-========================================= */
-
-function average(arr){
-
-    return arr.reduce(
-        (a,b) => a+b,
-        0
-    ) / arr.length;
-
-}
-
-
-/* =========================================
-   REPORT TEXT
-========================================= */
-
-function generateReport(data){
-
-    const temp =
-        findNumber(
-            data,
-            [
-                "temperature",
-                "temp",
-                "temperature_c"
-            ]
-        );
-
-
-    const radiation =
-        findNumber(
-            data,
-            [
-                "radiation",
-                "usv/h",
-                "usv_h",
-                "µsv/h",
-                "usv"
-            ]
-        );
-
-
-    const aqi =
-        findNumber(
-            data,
-            [
-                "aqi",
-                "air_quality_index"
-            ]
-        );
-
-
-    let html = `
-
-        <b>Records:</b>
-        ${data.length}
-
-        <br>
-
-    `;
-
-
-    if(temp.length){
-
-        html += `
-
-            <b>Temperature:</b>
-            Min ${Math.min(...temp).toFixed(2)}
-            |
-            Max ${Math.max(...temp).toFixed(2)}
-            |
-            Avg ${average(temp).toFixed(2)}
-            °C
-
-            <br>
-
-        `;
-
-    }
-
-
-    if(radiation.length){
-
-        html += `
-
-            <b>Radiation:</b>
-            Min ${Math.min(...radiation).toFixed(4)}
-            |
-            Max ${Math.max(...radiation).toFixed(4)}
-            |
-            Avg ${average(radiation).toFixed(4)}
-
-            <br>
-
-        `;
-
-    }
-
-
-    if(aqi.length){
-
-        html += `
-
-            <b>AQI:</b>
-            Min ${Math.min(...aqi).toFixed(0)}
-            |
-            Max ${Math.max(...aqi).toFixed(0)}
-            |
-            Avg ${average(aqi).toFixed(0)}
-
-            <br>
-
-        `;
-
-    }
-
-
-    document
-        .getElementById(
-            "reportText"
-        )
-        .innerHTML =
-        html;
-
-}
-
-
-/* =========================================
-   EXPORT REPORT
-========================================= */
-
-function exportReport(){
-
-    if(
-        !lastReport ||
-        !lastReport.length
-    ){
-
-        showModal(
-            "NO DATA",
-            "Load a CSV report before exporting."
-        );
-
-        return;
-
-    }
-
-
-    const headers =
-        Object.keys(
-            lastReport[0]
-        );
-
-
-    const lines = [
-        headers.join(",")
-    ];
-
-
-    lastReport.forEach(
-        row => {
-
-            lines.push(
-                headers.map(
-                    h =>
-                    `"${String(
-                        row[h] || ""
-                    ).replace(
-                        /"/g,
-                        '""'
-                    )}"`
-                ).join(",")
+            addAlert(
+                "warning",
+                "🔴 Significant earthquake detected: M" +
+                magnitude.toFixed(1)
             );
 
         }
-    );
-
-
-    const blob =
-        new Blob(
-            [
-                lines.join("\n")
-            ],
-            {
-                type:"text/csv"
-            }
-        );
-
-
-    const url =
-        URL.createObjectURL(blob);
-
-
-    const a =
-        document.createElement("a");
-
-
-    a.href = url;
-
-    a.download =
-        "CBRND_Report.csv";
-
-
-    a.click();
-
-
-    URL.revokeObjectURL(url);
-
-
-    addHistory(
-        "REPORT",
-        "CSV EXPORTED"
-    );
-
-}
-
-
-/* =========================================
-   VOICE RECOGNITION
-========================================= */
-
-const SpeechRecognition =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-
-if(SpeechRecognition){
-
-    recognition =
-        new SpeechRecognition();
-
-
-    recognition.continuous =
-        false;
-
-
-    recognition.interimResults =
-        false;
-
-
-    recognition.lang =
-        "hi-IN";
-
-
-    recognition.onstart =
-        function(){
-
-            listening =
-                true;
-
-
-            document
-                .getElementById("mic")
-                .classList
-                .add("listening");
-
-
-            document
-                .getElementById("mic")
-                .innerText =
-                "🔴";
-
-
-            document
-                .getElementById(
-                    "voiceStatus"
-                )
-                .innerText =
-                "Listening... / सुन रहा हूँ...";
-
-        };
-
-
-    recognition.onend =
-        function(){
-
-            listening =
-                false;
-
-
-            document
-                .getElementById("mic")
-                .classList
-                .remove("listening");
-
-
-            document
-                .getElementById("mic")
-                .innerText =
-                "🎤";
-
-        };
-
-
-    recognition.onerror =
-        function(event){
-
-            addHistory(
-                "VOICE ERROR",
-                event.error
-            );
-
-
-            document
-                .getElementById(
-                    "voiceStatus"
-                )
-                .innerText =
-                "Voice error: " +
-                event.error;
-
-        };
-
-
-    recognition.onresult =
-        function(event){
-
-            const command =
-                event
-                .results[0][0]
-                .transcript
-                .trim()
-                .toLowerCase();
-
-
-            document
-                .getElementById(
-                    "voiceStatus"
-                )
-                .innerText =
-                "Command: " +
-                command;
-
-
-            addHistory(
-                command,
-                "COMMAND RECEIVED"
-            );
-
-
-            processCommand(
-                command
-            );
-
-        };
-
-}
-
-
-/* =========================================
-   MICROPHONE
-========================================= */
-
-document
-    .getElementById("mic")
-    .addEventListener(
-        "click",
-        function(){
-
-            if(!recognition){
-
-                speak(
-                    "Speech recognition is not supported in this browser."
-                );
-
-                return;
-
-            }
-
-
-            if(listening){
-
-                recognition.stop();
-
-                return;
-
-            }
-
-
-            try{
-
-                recognition.lang =
-                    "hi-IN";
-
-                recognition.start();
-
-            }catch(error){
-
-                console.log(error);
-
-            }
-
-        }
-    );
-
-
-/* =========================================
-   VOICE COMMAND PROCESSOR
-========================================= */
-
-function processCommand(command){
-
-    if(matches(command,[
-        "open map",
-        "show map",
-        "map",
-        "नक्शा खोलो",
-        "मैप खोलो",
-        "नक्शा",
-        "मैप"
-    ])){
-
-        openMap();
-
-        speak(
-            "Live map is open."
-        );
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "gps",
-        "show location",
-        "my location",
-        "where am i",
-        "location",
-        "जीपीएस",
-        "लोकेशन",
-        "मेरी लोकेशन",
-        "स्थान"
-    ])){
-
-        getGPS();
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "start siren",
-        "siren on",
-        "alarm",
-        "सायरन चालू",
-        "सायरन चालू करो",
-        "अलार्म चालू"
-    ])){
-
-        if(!sirenOscillator){
-
-            startSiren();
-
-        }
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "stop siren",
-        "siren off",
-        "सायरन बंद",
-        "सायरन बंद करो"
-    ])){
-
-        stopSiren();
-
-        speak(
-            "Siren stopped."
-        );
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "emergency",
-        "emergency alert",
-        "alert",
-        "danger",
-        "इमरजेंसी",
-        "इमरजेंसी अलर्ट",
-        "अलर्ट",
-        "खतरा"
-    ])){
-
-        if(!alertActive){
-
-            activateAlert();
-
-        }
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "open report",
-        "show report",
-        "report",
-        "रिपोर्ट",
-        "रिपोर्ट खोलो"
-    ])){
-
-        openReport();
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "stop",
-        "stop all",
-        "cancel",
-        "सब बंद",
-        "सब बंद करो",
-        "सिस्टम बंद",
-        "रुको"
-    ])){
-
-        stopEverything();
-
-        speak(
-            "All systems stopped."
-        );
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "status",
-        "system status",
-        "स्थिति",
-        "सिस्टम स्टेटस"
-    ])){
-
-        speak(
-            "CBRND command center is online and ready."
-        );
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "temperature",
-        "temperature status",
-        "तापमान",
-        "तापमान बताओ"
-    ])){
-
-        const value =
-            document
-            .getElementById("temp")
-            .innerText;
-
-
-        if(value === "--"){
-
-            speak(
-                "Temperature data is not loaded."
-            );
-
-        }else{
-
-            speak(
-                "Average temperature is " +
-                value +
-                " degrees Celsius."
-            );
-
-        }
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "radiation",
-        "radiation status",
-        "रेडिएशन",
-        "विकिरण"
-    ])){
-
-        const value =
-            document
-            .getElementById(
-                "radiation"
-            )
-            .innerText;
-
-
-        if(value === "--"){
-
-            speak(
-                "Radiation data is not loaded."
-            );
-
-        }else{
-
-            speak(
-                "Average radiation is " +
-                value +
-                " microsieverts per hour."
-            );
-
-        }
-
-        return;
-
-    }
-
-
-    speak(
-        "Command not recognized. Please try another command."
-    );
-
-}
-
-
-/* =========================================
-   MATCH COMMAND
-========================================= */
-
-function matches(text,words){
-
-    return words.some(
-        word =>
-        text.includes(
-            word
-        )
-    );
-
-}
-
-
-/* =========================================
-   TEXT TO SPEECH
-========================================= */
-
-function speak(text){
-
-    if(
-        !("speechSynthesis" in window)
-    ){
-
-        return;
-
-    }
-
-
-    speechSynthesis.cancel();
-
-
-    const speech =
-        new SpeechSynthesisUtterance(
-            text
-        );
-
-
-    speech.lang =
-        /[\u0900-\u097F]/.test(text)
-        ? "hi-IN"
-        : "en-US";
-
-
-    speech.rate =
-        .95;
-
-
-    speech.pitch =
-        1;
-
-
-    speechSynthesis.speak(
-        speech
-    );
-
-}
-
-
-/* =========================================
-   HISTORY
-========================================= */
-
-function addHistory(
-    command,
-    result
-){
-
-    const history =
-        JSON.parse(
-            localStorage.getItem(
-                "cbrndHistory"
-            ) || "[]"
-        );
-
-
-    history.unshift({
-
-        time:
-            new Date().toLocaleString(),
-
-        command,
-        result
 
     });
 
 
-    if(history.length > 100){
-
-        history.length =
-            100;
-
-    }
+    document.getElementById("maxMagnitude")
+        .textContent =
+        maxMag.toFixed(1);
 
 
-    localStorage.setItem(
-        "cbrndHistory",
-        JSON.stringify(history)
-    );
+    if(features.length === 0){
 
-
-    renderHistory();
-
-}
-
-
-function renderHistory(){
-
-    const history =
-        JSON.parse(
-            localStorage.getItem(
-                "cbrndHistory"
-            ) || "[]"
-        );
-
-
-    const container =
-        document.getElementById(
-            "history"
-        );
-
-
-    if(!history.length){
-
-        container.innerHTML =
-            `
-            <div class="historyItem">
-                No command history.
-            </div>
-            `;
-
-        return;
+        list.innerHTML =
+            "<div class='eq-item'>🟢 No earthquakes reported in the current feed.</div>";
 
     }
 
-
-    container.innerHTML =
-        history.map(
-            item => `
-
-            <div class="historyItem">
-
-                <div class="historyTime">
-                    ${escapeHTML(item.time)}
-                </div>
-
-                <div class="historyCommand">
-                    ${escapeHTML(item.command)}
-                </div>
-
-                <div class="historyResult">
-                    ${escapeHTML(item.result)}
-                </div>
-
-            </div>
-
-            `
-        ).join("");
-
 }
 
 
-function clearHistory(){
+/* =====================================================
+   ALERT ENGINE
+   ===================================================== */
 
-    localStorage.removeItem(
-        "cbrndHistory"
-    );
+function addAlert(level,message){
 
-
-    renderHistory();
-
-}
+    const list =
+        document.getElementById("alertList");
 
 
-/* =========================================
-   MODAL
-========================================= */
-
-function showModal(
-    title,
-    text
-){
-
-    document
-        .getElementById("modalTitle")
-        .innerText =
-        title;
+    const div =
+        document.createElement("div");
 
 
-    document
-        .getElementById("modalText")
-        .innerText =
-        text;
+    div.className =
+        "alert " + level;
 
 
-    document
-        .getElementById("modal")
-        .classList
-        .add("show");
-
-}
-
-
-function closeModal(){
-
-    document
-        .getElementById("modal")
-        .classList
-        .remove("show");
-
-}
+    div.innerHTML =
+        message +
+        "<span class='alert-time'>" +
+        new Date().toLocaleTimeString() +
+        "</span>";
 
 
-/* =========================================
-   ESCAPE HTML
-========================================= */
+    list.prepend(div);
 
-function escapeHTML(text){
 
-    return String(text)
-        .replaceAll(
-            "&",
-            "&amp;"
-        )
-        .replaceAll(
-            "<",
-            "&lt;"
-        )
-        .replaceAll(
-            ">",
-            "&gt;"
-        )
-        .replaceAll(
-            '"',
-            "&quot;"
-        )
-        .replaceAll(
-            "'",
-            "&#039;"
+    while(list.children.length > 20){
+
+        list.removeChild(
+            list.lastChild
         );
 
+    }
+
 }
 
 
-/* =========================================
-   KEYBOARD SHORTCUTS
-========================================= */
+/* =====================================================
+   UTILITY
+   ===================================================== */
 
-document.addEventListener(
-    "keydown",
-    function(event){
+function round(value){
 
-        /* SPACE = MIC */
+    if(value === null ||
+       value === undefined ||
+       isNaN(value)){
 
-        if(
-            event.code === "Space" &&
-            event.target.tagName !== "INPUT"
-        ){
-
-            event.preventDefault();
-
-            document
-                .getElementById("mic")
-                .click();
-
-        }
-
-
-        /* ESC = STOP */
-
-        if(event.key === "Escape"){
-
-            stopEverything();
-
-        }
+        return "--";
 
     }
+
+    return Number(value).toFixed(1);
+
+}
+
+
+/* =====================================================
+   START SYSTEM
+   ===================================================== */
+
+loadEarthquakes();
+
+
+/* Weather refresh: 5 minutes */
+
+setInterval(
+    loadWeather,
+    5 * 60 * 1000
 );
 
 
-/* =========================================
-   STARTUP
-========================================= */
+/* Earthquake refresh: 2 minutes */
 
-window.addEventListener(
-    "load",
-    function(){
-
-        initMap();
-
-        renderHistory();
-
-
-        addHistory(
-            "SYSTEM",
-            "CBRND COMMAND CENTER V2 READY"
-        );
-
-    }
+setInterval(
+    loadEarthquakes,
+    2 * 60 * 1000
 );
 
 </script>
