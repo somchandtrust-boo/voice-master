@@ -1,9 +1,11 @@
 /* =========================================================
    CBRND ENVIRONMENT COMMAND CENTER
-   REAL WEATHER MAP ENGINE V2
+   REAL WEATHER MAP ENGINE V3
+   MAP ONLY UPGRADE
    ========================================================= */
 
 "use strict";
+
 
 /* =========================================================
    APP LINKS
@@ -33,8 +35,11 @@ let currentMetric = "temperature";
 
 let weatherGridLayer = null;
 let windLayer = null;
+
 let gpsMarker = null;
 let gpsAccuracyCircle = null;
+
+let searchMarker = null;
 
 let weatherChart = null;
 
@@ -42,12 +47,22 @@ let isListening = false;
 
 
 /* =========================================================
-   MAP TILE LAYERS
+   MAP STATE
    ========================================================= */
 
 let streetLayer;
 let topoLayer;
 let satelliteLayer;
+
+let mapWeatherCache = null;
+
+let mapGridLoading = false;
+
+let mapRefreshTimer = null;
+
+let mapMoveTimer = null;
+
+let mapSearchControl = null;
 
 
 /* =========================================================
@@ -68,9 +83,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     locateUser();
 
-    setInterval(loadWeather, 5 * 60 * 1000);
+    setInterval(
+        loadWeather,
+        5 * 60 * 1000
+    );
 
-    setInterval(loadEarthquakes, 2 * 60 * 1000);
+    setInterval(
+        loadEarthquakes,
+        2 * 60 * 1000
+    );
+
+    /*
+     * Map grid refresh every 5 minutes.
+     */
+    mapRefreshTimer = setInterval(
+        loadMapWeatherGrid,
+        5 * 60 * 1000
+    );
 
 });
 
@@ -90,7 +119,9 @@ function initMap() {
     );
 
 
-    /* STREET */
+    /* =====================================================
+       STREET
+       ===================================================== */
 
     streetLayer = L.tileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -101,7 +132,9 @@ function initMap() {
     );
 
 
-    /* TOPO */
+    /* =====================================================
+       TOPO
+       ===================================================== */
 
     topoLayer = L.tileLayer(
         "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
@@ -112,7 +145,9 @@ function initMap() {
     );
 
 
-    /* SATELLITE */
+    /* =====================================================
+       SATELLITE
+       ===================================================== */
 
     satelliteLayer = L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -130,7 +165,62 @@ function initMap() {
 
     addWeatherMetricControl();
 
+    addMapSearchControl();
+
+    addFindLocationControl();
+
+    addMapLegend();
+
     addMapInfoPanel();
+
+
+    /*
+     * When map moves, reload actual weather samples
+     * for the visible map area.
+     */
+
+    map.on(
+        "moveend",
+        () => {
+
+            clearTimeout(
+                mapMoveTimer
+            );
+
+            mapMoveTimer =
+                setTimeout(
+                    () => {
+
+                        loadMapWeatherGrid();
+
+                    },
+                    900
+                );
+
+        }
+    );
+
+
+    map.on(
+        "zoomend",
+        () => {
+
+            clearTimeout(
+                mapMoveTimer
+            );
+
+            mapMoveTimer =
+                setTimeout(
+                    () => {
+
+                        loadMapWeatherGrid();
+
+                    },
+                    500
+                );
+
+        }
+    );
 
 }
 
@@ -141,72 +231,98 @@ function initMap() {
 
 function addMapStyleControl() {
 
-    const control = L.control({
-        position: "topright"
-    });
+    const control =
+        L.control({
+            position: "topright"
+        });
 
 
-    control.onAdd = function () {
+    control.onAdd =
+        function () {
 
-        const div = L.DomUtil.create(
-            "div",
-            "map-control-box"
-        );
-
-        div.innerHTML = `
-            <div class="map-control-title">
-                MAP
-            </div>
-
-            <button class="map-style-btn active"
-                data-map="street">
-                Street
-            </button>
-
-            <button class="map-style-btn"
-                data-map="topo">
-                Topo
-            </button>
-
-            <button class="map-style-btn"
-                data-map="satellite">
-                Satellite
-            </button>
-        `;
+            const div =
+                L.DomUtil.create(
+                    "div",
+                    "map-control-box"
+                );
 
 
-        L.DomEvent.disableClickPropagation(div);
+            div.innerHTML = `
+
+                <div class="map-control-title">
+                    MAP STYLE
+                </div>
+
+                <button
+                    class="map-style-btn active"
+                    data-map="street">
+                    🗺 Street
+                </button>
+
+                <button
+                    class="map-style-btn"
+                    data-map="topo">
+                    ⛰ Topo
+                </button>
+
+                <button
+                    class="map-style-btn"
+                    data-map="satellite">
+                    🛰 Satellite
+                </button>
+
+            `;
 
 
-        div.querySelectorAll(
-            ".map-style-btn"
-        ).forEach(button => {
+            L.DomEvent.disableClickPropagation(
+                div
+            );
 
-            button.addEventListener(
-                "click",
-                () => {
 
-                    const type =
-                        button.dataset.map;
+            div.querySelectorAll(
+                ".map-style-btn"
+            ).forEach(
+                button => {
 
-                    setMapStyle(type);
+                    button.addEventListener(
+                        "click",
+                        () => {
 
-                    div.querySelectorAll(
-                        ".map-style-btn"
-                    ).forEach(btn => {
-                        btn.classList.remove("active");
-                    });
+                            const type =
+                                button.dataset.map;
 
-                    button.classList.add("active");
+                            setMapStyle(
+                                type
+                            );
+
+
+                            div.querySelectorAll(
+                                ".map-style-btn"
+                            ).forEach(
+                                btn => {
+
+                                    btn.classList.remove(
+                                        "active"
+                                    );
+
+                                }
+                            );
+
+
+                            button.classList.add(
+                                "active"
+                            );
+
+                        }
+                    );
 
                 }
             );
 
-        });
 
+            return div;
 
-        return div;
-    };
+        };
 
 
     control.addTo(map);
@@ -220,21 +336,60 @@ function addMapStyleControl() {
 
 function setMapStyle(type) {
 
-    map.removeLayer(streetLayer);
-    map.removeLayer(topoLayer);
-    map.removeLayer(satelliteLayer);
+    if (
+        streetLayer &&
+        map.hasLayer(streetLayer)
+    ) {
+        map.removeLayer(
+            streetLayer
+        );
+    }
+
+
+    if (
+        topoLayer &&
+        map.hasLayer(topoLayer)
+    ) {
+        map.removeLayer(
+            topoLayer
+        );
+    }
+
+
+    if (
+        satelliteLayer &&
+        map.hasLayer(satelliteLayer)
+    ) {
+        map.removeLayer(
+            satelliteLayer
+        );
+    }
 
 
     if (type === "topo") {
-        topoLayer.addTo(map);
+
+        topoLayer.addTo(
+            map
+        );
+
     }
 
-    else if (type === "satellite") {
-        satelliteLayer.addTo(map);
+    else if (
+        type === "satellite"
+    ) {
+
+        satelliteLayer.addTo(
+            map
+        );
+
     }
 
     else {
-        streetLayer.addTo(map);
+
+        streetLayer.addTo(
+            map
+        );
+
     }
 
 }
@@ -246,91 +401,747 @@ function setMapStyle(type) {
 
 function addWeatherMetricControl() {
 
-    const control = L.control({
-        position: "topright"
-    });
+    const control =
+        L.control({
+            position: "topright"
+        });
 
 
-    control.onAdd = function () {
+    control.onAdd =
+        function () {
 
-        const div = L.DomUtil.create(
-            "div",
-            "map-control-box weather-control"
-        );
-
-
-        div.innerHTML = `
-
-            <div class="map-control-title">
-                LIVE WEATHER
-            </div>
-
-            <button class="weather-metric-btn active"
-                data-metric="temperature">
-                🌡 Temperature
-            </button>
-
-            <button class="weather-metric-btn"
-                data-metric="humidity">
-                💧 Humidity
-            </button>
-
-            <button class="weather-metric-btn"
-                data-metric="pressure">
-                🧭 Pressure
-            </button>
-
-            <button class="weather-metric-btn"
-                data-metric="wind">
-                🌬 Wind
-            </button>
-
-            <button class="weather-metric-btn"
-                data-metric="rain">
-                🌧 Rain
-            </button>
-
-        `;
+            const div =
+                L.DomUtil.create(
+                    "div",
+                    "map-control-box weather-control"
+                );
 
 
-        L.DomEvent.disableClickPropagation(div);
+            div.innerHTML = `
+
+                <div class="map-control-title">
+                    LIVE WEATHER
+                </div>
+
+                <button
+                    class="weather-metric-btn active"
+                    data-metric="temperature">
+                    🌡 Temperature
+                </button>
+
+                <button
+                    class="weather-metric-btn"
+                    data-metric="humidity">
+                    💧 Humidity
+                </button>
+
+                <button
+                    class="weather-metric-btn"
+                    data-metric="pressure">
+                    🧭 Pressure
+                </button>
+
+                <button
+                    class="weather-metric-btn"
+                    data-metric="wind">
+                    🌬 Wind
+                </button>
+
+                <button
+                    class="weather-metric-btn"
+                    data-metric="rain">
+                    🌧 Rain
+                </button>
+
+                <button
+                    class="weather-metric-btn"
+                    data-metric="cloud">
+                    ☁️ Cloud
+                </button>
+
+            `;
 
 
-        div.querySelectorAll(
-            ".weather-metric-btn"
-        ).forEach(button => {
+            L.DomEvent.disableClickPropagation(
+                div
+            );
+
+
+            div.querySelectorAll(
+                ".weather-metric-btn"
+            ).forEach(
+                button => {
+
+                    button.addEventListener(
+                        "click",
+                        () => {
+
+                            const metric =
+                                button.dataset.metric;
+
+
+                            setWeatherMetric(
+                                metric
+                            );
+
+
+                            div.querySelectorAll(
+                                ".weather-metric-btn"
+                            ).forEach(
+                                btn => {
+
+                                    btn.classList.remove(
+                                        "active"
+                                    );
+
+                                }
+                            );
+
+
+                            button.classList.add(
+                                "active"
+                            );
+
+                        }
+                    );
+
+                }
+            );
+
+
+            return div;
+
+        };
+
+
+    control.addTo(map);
+
+}
+
+
+/* =========================================================
+   MAP SEARCH CONTROL
+   ========================================================= */
+
+function addMapSearchControl() {
+
+    const control =
+        L.control({
+            position: "topleft"
+        });
+
+
+    control.onAdd =
+        function () {
+
+            const div =
+                L.DomUtil.create(
+                    "div",
+                    "map-search-control"
+                );
+
+
+            div.innerHTML = `
+
+                <div class="map-search-row">
+
+                    <input
+                        id="mapSearchInput"
+                        type="text"
+                        placeholder="Search city / place..."
+                        autocomplete="off"
+                    >
+
+                    <button
+                        id="mapSearchBtn"
+                        title="Search">
+                        🔎
+                    </button>
+
+                </div>
+
+                <div
+                    id="mapSearchStatus"
+                    class="map-search-status">
+                    Ready
+                </div>
+
+                <div
+                    id="mapSearchResults"
+                    class="map-search-results">
+                </div>
+
+            `;
+
+
+            L.DomEvent.disableClickPropagation(
+                div
+            );
+
+
+            const input =
+                div.querySelector(
+                    "#mapSearchInput"
+                );
+
+
+            const button =
+                div.querySelector(
+                    "#mapSearchBtn"
+                );
+
 
             button.addEventListener(
                 "click",
                 () => {
 
-                    const metric =
-                        button.dataset.metric;
-
-                    setWeatherMetric(metric);
-
-
-                    div.querySelectorAll(
-                        ".weather-metric-btn"
-                    ).forEach(btn => {
-                        btn.classList.remove("active");
-                    });
-
-
-                    button.classList.add("active");
+                    searchMapLocation();
 
                 }
             );
 
+
+            input.addEventListener(
+                "keydown",
+                event => {
+
+                    if (
+                        event.key === "Enter"
+                    ) {
+
+                        searchMapLocation();
+
+                    }
+
+                }
+            );
+
+
+            return div;
+
+        };
+
+
+    control.addTo(map);
+
+    mapSearchControl =
+        control;
+
+}
+
+
+/* =========================================================
+   SEARCH LOCATION
+   ========================================================= */
+
+async function searchMapLocation() {
+
+    const input =
+        document.getElementById(
+            "mapSearchInput"
+        );
+
+
+    const status =
+        document.getElementById(
+            "mapSearchStatus"
+        );
+
+
+    const resultsBox =
+        document.getElementById(
+            "mapSearchResults"
+        );
+
+
+    if (
+        !input ||
+        !status
+    ) {
+        return;
+    }
+
+
+    const query =
+        input.value.trim();
+
+
+    if (!query) {
+
+        status.textContent =
+            "Enter a city or place";
+
+        return;
+
+    }
+
+
+    status.textContent =
+        "Searching...";
+
+
+    if (resultsBox) {
+        resultsBox.innerHTML = "";
+    }
+
+
+    try {
+
+        const url =
+            "https://nominatim.openstreetmap.org/search" +
+            "?format=jsonv2" +
+            "&limit=5" +
+            "&addressdetails=1" +
+            "&q=" +
+            encodeURIComponent(
+                query
+            );
+
+
+        const response =
+            await fetch(
+                url,
+                {
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Search service unavailable"
+            );
+
+        }
+
+
+        const results =
+            await response.json();
+
+
+        if (
+            !results.length
+        ) {
+
+            status.textContent =
+                "No location found";
+
+            return;
+
+        }
+
+
+        status.textContent =
+            `${results.length} result(s)`;
+
+
+        if (resultsBox) {
+
+            resultsBox.innerHTML =
+                results
+                    .map(
+                        (item, index) => `
+
+                            <button
+                                class="map-search-result"
+                                data-index="${index}">
+
+                                <strong>
+                                    ${
+                                        item.display_name
+                                    }
+                                </strong>
+
+                            </button>
+
+                        `
+                    )
+                    .join("");
+
+
+            resultsBox
+                .querySelectorAll(
+                    ".map-search-result"
+                )
+                .forEach(
+                    button => {
+
+                        button.addEventListener(
+                            "click",
+                            () => {
+
+                                const item =
+                                    results[
+                                        Number(
+                                            button.dataset.index
+                                        )
+                                    ];
+
+                                selectSearchLocation(
+                                    item
+                                );
+
+                            }
+                        );
+
+                    }
+                );
+
+        }
+
+        else {
+
+            selectSearchLocation(
+                results[0]
+            );
+
+        }
+
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Map search error:",
+            error
+        );
+
+
+        status.textContent =
+            "Search failed";
+
+    }
+
+}
+
+
+/* =========================================================
+   SELECT SEARCH LOCATION
+   ========================================================= */
+
+function selectSearchLocation(
+    item
+) {
+
+    const lat =
+        Number(
+            item.lat
+        );
+
+
+    const lon =
+        Number(
+            item.lon
+        );
+
+
+    if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lon)
+    ) {
+        return;
+    }
+
+
+    currentLat =
+        lat;
+
+    currentLon =
+        lon;
+
+
+    if (searchMarker) {
+
+        map.removeLayer(
+            searchMarker
+        );
+
+    }
+
+
+    searchMarker =
+        L.marker(
+            [
+                lat,
+                lon
+            ]
+        )
+        .bindPopup(`
+            <div class="weather-popup">
+
+                <div class="popup-title">
+                    🔎 SEARCH LOCATION
+                </div>
+
+                <div>
+                    ${
+                        item.display_name
+                    }
+                </div>
+
+                <div>
+                    Latitude:
+                    ${lat.toFixed(5)}
+                </div>
+
+                <div>
+                    Longitude:
+                    ${lon.toFixed(5)}
+                </div>
+
+            </div>
+        `)
+        .addTo(map);
+
+
+    searchMarker.openPopup();
+
+
+    map.setView(
+        [
+            lat,
+            lon
+        ],
+        10,
+        {
+            animate: true
+        }
+    );
+
+
+    const resultsBox =
+        document.getElementById(
+            "mapSearchResults"
+        );
+
+
+    if (resultsBox) {
+        resultsBox.innerHTML = "";
+    }
+
+
+    const status =
+        document.getElementById(
+            "mapSearchStatus"
+        );
+
+
+    if (status) {
+
+        status.textContent =
+            "Location selected";
+
+    }
+
+
+    /*
+     * Load actual weather for searched location.
+     */
+
+    loadWeather();
+
+    loadMapWeatherGrid();
+
+}
+
+
+/* =========================================================
+   FIND MY LOCATION CONTROL
+   ========================================================= */
+
+function addFindLocationControl() {
+
+    const control =
+        L.control({
+            position: "topleft"
         });
 
 
-        return div;
+    control.onAdd =
+        function () {
+
+            const div =
+                L.DomUtil.create(
+                    "div",
+                    "map-location-control"
+                );
+
+
+            div.innerHTML = `
+
+                <button
+                    id="findMyLocationBtn"
+                    title="Find my location">
+                    📍 Find My Location
+                </button>
+
+            `;
+
+
+            L.DomEvent.disableClickPropagation(
+                div
+            );
+
+
+            div.querySelector(
+                "#findMyLocationBtn"
+            ).addEventListener(
+                "click",
+                () => {
+
+                    locateUser(
+                        true
+                    );
+
+                }
+            );
+
+
+            return div;
+
+        };
+
+
+    control.addTo(map);
+
+}
+
+
+/* =========================================================
+   MAP LEGEND
+   ========================================================= */
+
+function addMapLegend() {
+
+    const control =
+        L.control({
+            position: "bottomright"
+        });
+
+
+    control.onAdd =
+        function () {
+
+            const div =
+                L.DomUtil.create(
+                    "div",
+                    "map-weather-legend"
+                );
+
+
+            div.id =
+                "mapWeatherLegend";
+
+
+            updateMapLegendElement(
+                div
+            );
+
+
+            return div;
+
+        };
+
+
+    control.addTo(map);
+
+}
+
+
+/* =========================================================
+   UPDATE LEGEND
+   ========================================================= */
+
+function updateMapLegendElement(
+    div
+) {
+
+    if (!div) {
+
+        div =
+            document.getElementById(
+                "mapWeatherLegend"
+            );
+
+    }
+
+
+    if (!div) {
+        return;
+    }
+
+
+    const legends = {
+
+        temperature: `
+            <b>🌡 Temperature</b>
+            <div class="legend-gradient temp-gradient"></div>
+            <div class="legend-labels">
+                <span>Cold</span>
+                <span>Hot</span>
+            </div>
+        `,
+
+        humidity: `
+            <b>💧 Humidity</b>
+            <div class="legend-gradient humidity-gradient"></div>
+            <div class="legend-labels">
+                <span>Dry</span>
+                <span>Humid</span>
+            </div>
+        `,
+
+        pressure: `
+            <b>🧭 Pressure</b>
+            <div class="legend-gradient pressure-gradient"></div>
+            <div class="legend-labels">
+                <span>Low</span>
+                <span>High</span>
+            </div>
+        `,
+
+        rain: `
+            <b>🌧 Rain</b>
+            <div class="legend-gradient rain-gradient"></div>
+            <div class="legend-labels">
+                <span>Low</span>
+                <span>Heavy</span>
+            </div>
+        `,
+
+        cloud: `
+            <b>☁️ Cloud Cover</b>
+            <div class="legend-gradient cloud-gradient"></div>
+            <div class="legend-labels">
+                <span>Clear</span>
+                <span>Cloudy</span>
+            </div>
+        `,
+
+        wind: `
+            <b>🌬 Wind</b>
+            <div class="legend-wind">
+                ➤ Actual direction
+            </div>
+            <div class="legend-labels">
+                <span>Slow</span>
+                <span>Fast</span>
+            </div>
+        `
 
     };
 
 
-    control.addTo(map);
+    div.innerHTML =
+        legends[
+            currentMetric
+        ] ||
+        legends.temperature;
 
 }
 
@@ -341,40 +1152,48 @@ function addWeatherMetricControl() {
 
 function addMapInfoPanel() {
 
-    const control = L.control({
-        position: "bottomleft"
-    });
+    const control =
+        L.control({
+            position: "bottomleft"
+        });
 
 
-    control.onAdd = function () {
+    control.onAdd =
+        function () {
 
-        const div = L.DomUtil.create(
-            "div",
-            "map-live-info"
-        );
-
-
-        div.id = "mapLiveInfo";
-
-
-        div.innerHTML = `
-            <div>
-                <strong>LIVE DATA</strong>
-            </div>
-
-            <div id="mapMetricText">
-                Loading weather...
-            </div>
-
-            <div id="mapUpdatedText">
-                Waiting...
-            </div>
-        `;
+            const div =
+                L.DomUtil.create(
+                    "div",
+                    "map-live-info"
+                );
 
 
-        return div;
+            div.id =
+                "mapLiveInfo";
 
-    };
+
+            div.innerHTML = `
+
+                <div>
+                    <strong>
+                        LIVE DATA
+                    </strong>
+                </div>
+
+                <div id="mapMetricText">
+                    Loading weather...
+                </div>
+
+                <div id="mapUpdatedText">
+                    Waiting...
+                </div>
+
+            `;
+
+
+            return div;
+
+        };
 
 
     control.addTo(map);
@@ -386,11 +1205,18 @@ function addMapInfoPanel() {
    WEATHER METRIC
    ========================================================= */
 
-function setWeatherMetric(metric) {
+function setWeatherMetric(
+    metric
+) {
 
-    currentMetric = metric;
+    currentMetric =
+        metric;
+
 
     clearWeatherLayers();
+
+
+    updateMapLegendElement();
 
 
     if (!currentWeather) {
@@ -398,7 +1224,13 @@ function setWeatherMetric(metric) {
     }
 
 
-    if (metric === "wind") {
+    /*
+     * Wind uses actual wind-grid data.
+     */
+
+    if (
+        metric === "wind"
+    ) {
 
         drawWindField();
 
@@ -406,7 +1238,27 @@ function setWeatherMetric(metric) {
 
     else {
 
-        drawWeatherField(metric);
+        /*
+         * Draw cached actual grid if available.
+         * Otherwise fetch it.
+         */
+
+        if (
+            mapWeatherCache
+        ) {
+
+            drawWeatherField(
+                metric,
+                mapWeatherCache
+            );
+
+        }
+
+        else {
+
+            loadMapWeatherGrid();
+
+        }
 
     }
 
@@ -422,24 +1274,30 @@ function setWeatherMetric(metric) {
 
 function clearWeatherLayers() {
 
-    if (weatherGridLayer) {
+    if (
+        weatherGridLayer
+    ) {
 
         map.removeLayer(
             weatherGridLayer
         );
 
-        weatherGridLayer = null;
+        weatherGridLayer =
+            null;
 
     }
 
 
-    if (windLayer) {
+    if (
+        windLayer
+    ) {
 
         map.removeLayer(
             windLayer
         );
 
-        windLayer = null;
+        windLayer =
+            null;
 
     }
 
@@ -447,7 +1305,7 @@ function clearWeatherLayers() {
 
 
 /* =========================================================
-   OPEN METEO WEATHER
+   OPEN METEO CURRENT WEATHER
    ========================================================= */
 
 async function loadWeather() {
@@ -483,13 +1341,17 @@ async function loadWeather() {
 
 
         const response =
-            await fetch(url);
+            await fetch(
+                url
+            );
 
 
         if (!response.ok) {
+
             throw new Error(
                 "Weather API error"
             );
+
         }
 
 
@@ -519,7 +1381,370 @@ async function loadWeather() {
             error
         );
 
+
         showWeatherError();
+
+    }
+
+}
+
+
+/* =========================================================
+   MAP WEATHER GRID
+   =========================================================
+   Actual Open-Meteo values are requested for every
+   visible grid point.
+
+   No artificial value interpolation.
+   ========================================================= */
+
+async function loadMapWeatherGrid() {
+
+    if (
+        !map ||
+        mapGridLoading
+    ) {
+        return;
+    }
+
+
+    mapGridLoading =
+        true;
+
+
+    updateMapLoadingStatus(
+        true
+    );
+
+
+    try {
+
+        const bounds =
+            map.getBounds();
+
+
+        const north =
+            bounds.getNorth();
+
+
+        const south =
+            bounds.getSouth();
+
+
+        const east =
+            bounds.getEast();
+
+
+        const west =
+            bounds.getWest();
+
+
+        /*
+         * Keep the grid practical for the API.
+         */
+
+        const gridSize =
+            map.getZoom() <= 5
+                ? 6
+                : map.getZoom() <= 8
+                    ? 7
+                    : 8;
+
+
+        const points = [];
+
+
+        for (
+            let row = 0;
+            row < gridSize;
+            row++
+        ) {
+
+            const lat =
+                south +
+                (
+                    (north - south) *
+                    row /
+                    (gridSize - 1)
+                );
+
+
+            for (
+                let col = 0;
+                col < gridSize;
+                col++
+            ) {
+
+                const lon =
+                    west +
+                    (
+                        (east - west) *
+                        col /
+                        (gridSize - 1)
+                    );
+
+
+                /*
+                 * Avoid extreme polar coordinates.
+                 */
+
+                if (
+                    lat < -85 ||
+                    lat > 85
+                ) {
+                    continue;
+                }
+
+
+                points.push({
+                    lat,
+                    lon
+                });
+
+            }
+
+        }
+
+
+        if (!points.length) {
+            return;
+        }
+
+
+        const latitudes =
+            points
+                .map(
+                    p =>
+                        p.lat.toFixed(4)
+                )
+                .join(",");
+
+
+        const longitudes =
+            points
+                .map(
+                    p =>
+                        p.lon.toFixed(4)
+                )
+                .join(",");
+
+
+        /*
+         * Open-Meteo supports multiple coordinates
+         * in a single request.
+         */
+
+        const url =
+            "https://api.open-meteo.com/v1/forecast" +
+            `?latitude=${latitudes}` +
+            `&longitude=${longitudes}` +
+            "&current=" +
+            [
+                "temperature_2m",
+                "relative_humidity_2m",
+                "surface_pressure",
+                "wind_speed_10m",
+                "wind_direction_10m",
+                "precipitation",
+                "cloud_cover"
+            ].join(",") +
+            "&timezone=auto";
+
+
+        const response =
+            await fetch(
+                url
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Map weather grid API error"
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        /*
+         * Multiple coordinate requests return
+         * an array of weather objects.
+         */
+
+        let weatherPoints;
+
+
+        if (
+            Array.isArray(data)
+        ) {
+
+            weatherPoints =
+                data;
+
+        }
+
+        else {
+
+            weatherPoints =
+                [data];
+
+        }
+
+
+        mapWeatherCache =
+            weatherPoints.map(
+                (weather, index) => {
+
+                    return {
+
+                        lat:
+                            Number(
+                                weather.latitude ??
+                                points[index]?.lat
+                            ),
+
+                        lon:
+                            Number(
+                                weather.longitude ??
+                                points[index]?.lon
+                            ),
+
+                        current:
+                            weather.current ||
+                            {}
+
+                    };
+
+                }
+            );
+
+
+        /*
+         * Redraw current metric using actual values.
+         */
+
+        clearWeatherLayers();
+
+
+        if (
+            currentMetric === "wind"
+        ) {
+
+            drawWindField(
+                mapWeatherCache
+            );
+
+        }
+
+        else {
+
+            drawWeatherField(
+                currentMetric,
+                mapWeatherCache
+            );
+
+        }
+
+
+        updateMapInfo();
+
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Map grid error:",
+            error
+        );
+
+
+        /*
+         * Keep existing map functional even if
+         * grid service temporarily fails.
+         */
+
+        if (
+            currentWeather?.current
+        ) {
+
+            clearWeatherLayers();
+
+
+            if (
+                currentMetric === "wind"
+            ) {
+
+                drawWindField();
+
+            }
+
+            else {
+
+                drawWeatherField(
+                    currentMetric,
+                    null
+                );
+
+            }
+
+        }
+
+    }
+
+    finally {
+
+        mapGridLoading =
+            false;
+
+
+        updateMapLoadingStatus(
+            false
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   MAP LOADING STATUS
+   ========================================================= */
+
+function updateMapLoadingStatus(
+    loading
+) {
+
+    const status =
+        document.getElementById(
+            "mapSearchStatus"
+        );
+
+
+    if (!status) {
+        return;
+    }
+
+
+    if (loading) {
+
+        status.textContent =
+            "Updating weather map...";
+
+    }
+
+    else if (
+        !status.textContent ||
+        status.textContent ===
+            "Updating weather map..."
+    ) {
+
+        status.textContent =
+            "Live map ready";
 
     }
 
@@ -532,7 +1757,9 @@ async function loadWeather() {
 
 function updateWeatherCards() {
 
-    if (!currentWeather?.current) {
+    if (
+        !currentWeather?.current
+    ) {
         return;
     }
 
@@ -583,15 +1810,257 @@ function updateWeatherCards() {
    WEATHER FIELD
    ========================================================= */
 
-function drawWeatherField(metric) {
+function drawWeatherField(
+    metric,
+    points
+) {
 
-    if (!currentWeather?.current) {
+    if (
+        !currentWeather?.current
+    ) {
         return;
     }
 
 
     weatherGridLayer =
-        L.layerGroup().addTo(map);
+        L.layerGroup().addTo(
+            map
+        );
+
+
+    /*
+     * If actual map points are available,
+     * use them.
+     */
+
+    if (
+        Array.isArray(points) &&
+        points.length
+    ) {
+
+        points.forEach(
+            point => {
+
+                const weather =
+                    point.current ||
+                    {};
+
+
+                const value =
+                    getMetricValue(
+                        metric,
+                        weather
+                    );
+
+
+                if (
+                    !Number.isFinite(
+                        Number(value)
+                    )
+                ) {
+                    return;
+                }
+
+
+                const color =
+                    getMetricColor(
+                        metric,
+                        Number(value)
+                    );
+
+
+                /*
+                 * Determine approximate cell radius
+                 * from current map dimensions.
+                 */
+
+                const radius =
+                    getWeatherCellRadius();
+
+
+                const circle =
+                    L.circle(
+                        [
+                            point.lat,
+                            point.lon
+                        ],
+                        {
+                            radius:
+                                radius,
+
+                            color:
+                                color,
+
+                            fillColor:
+                                color,
+
+                            fillOpacity:
+                                0.17,
+
+                            opacity:
+                                0.35,
+
+                            weight:
+                                1
+                        }
+                    );
+
+
+                circle.bindPopup(
+                    createGridWeatherPopup(
+                        metric,
+                        value,
+                        point.lat,
+                        point.lon,
+                        weather
+                    )
+                );
+
+
+                circle.addTo(
+                    weatherGridLayer
+                );
+
+            }
+        );
+
+
+        /*
+         * Add center current weather marker.
+         */
+
+        addCurrentWeatherMarker(
+            metric
+        );
+
+
+        return;
+
+    }
+
+
+    /*
+     * Fallback to actual current point only.
+     * No fake values are generated.
+     */
+
+    const w =
+        currentWeather.current;
+
+
+    const value =
+        getMetricValue(
+            metric,
+            w
+        );
+
+
+    const color =
+        getMetricColor(
+            metric,
+            value
+        );
+
+
+    L.circle(
+        [
+            currentLat,
+            currentLon
+        ],
+        {
+            radius: 25000,
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.15,
+            weight: 2
+        }
+    )
+    .bindPopup(
+        createWeatherPopup(
+            metric,
+            value,
+            w
+        )
+    )
+    .addTo(
+        weatherGridLayer
+    );
+
+}
+
+
+/* =========================================================
+   WEATHER CELL RADIUS
+   ========================================================= */
+
+function getWeatherCellRadius() {
+
+    if (!map) {
+        return 25000;
+    }
+
+
+    const bounds =
+        map.getBounds();
+
+
+    const latSpan =
+        Math.abs(
+            bounds.getNorth() -
+            bounds.getSouth()
+        );
+
+
+    const lonSpan =
+        Math.abs(
+            bounds.getEast() -
+            bounds.getWest()
+        );
+
+
+    const span =
+        Math.max(
+            latSpan,
+            lonSpan
+        );
+
+
+    /*
+     * Convert visible degree span into
+     * a sensible weather-cell radius.
+     */
+
+    const radius =
+        span *
+        111000 /
+        14;
+
+
+    return Math.max(
+        1500,
+        Math.min(
+            80000,
+            radius
+        )
+    );
+
+}
+
+
+/* =========================================================
+   CURRENT WEATHER MARKER
+   ========================================================= */
+
+function addCurrentWeatherMarker(
+    metric
+) {
+
+    if (
+        !map ||
+        !currentWeather?.current
+    ) {
+        return;
+    }
 
 
     const w =
@@ -612,16 +2081,17 @@ function drawWeatherField(metric) {
         );
 
 
-    /* Main actual-data zone */
-
-    L.circle(
-        [currentLat, currentLon],
+    L.circleMarker(
+        [
+            currentLat,
+            currentLon
+        ],
         {
-            radius: 25000,
-            color: color,
+            radius: 8,
+            color: "#ffffff",
+            weight: 2,
             fillColor: color,
-            fillOpacity: 0.10,
-            weight: 2
+            fillOpacity: 1
         }
     )
     .bindPopup(
@@ -631,192 +2101,133 @@ function drawWeatherField(metric) {
             w
         )
     )
-    .addTo(weatherGridLayer);
-
-
-    L.circle(
-        [currentLat, currentLon],
-        {
-            radius: 10000,
-            color: color,
-            fillColor: color,
-            fillOpacity: 0.18,
-            weight: 1
-        }
-    )
-    .addTo(weatherGridLayer);
-
-
-    /* Grid */
-
-    createWeatherGrid(
-        metric
+    .addTo(
+        weatherGridLayer
     );
 
 }
 
 
 /* =========================================================
-   WEATHER GRID
+   WEATHER GRID POPUP
    ========================================================= */
 
-function createWeatherGrid(metric) {
-
-    const gridSize = 5;
-
-    const spacing = 0.12;
-
-
-    const baseLat =
-        currentLat -
-        ((gridSize - 1) * spacing) / 2;
-
-
-    const baseLon =
-        currentLon -
-        ((gridSize - 1) * spacing) / 2;
-
-
-    for (
-        let row = 0;
-        row < gridSize;
-        row++
-    ) {
-
-        for (
-            let col = 0;
-            col < gridSize;
-            col++
-        ) {
-
-            const lat =
-                baseLat +
-                row * spacing;
-
-
-            const lon =
-                baseLon +
-                col * spacing;
-
-
-            /*
-              Use current real value as the
-              center reference.
-
-              Small visual variation makes
-              the field readable without
-              pretending that we have a
-              high-resolution radar.
-            */
-
-            const value =
-                getGridVisualValue(
-                    metric,
-                    row,
-                    col
-                );
-
-
-            const color =
-                getMetricColor(
-                    metric,
-                    value
-                );
-
-
-            const marker =
-                L.circleMarker(
-                    [lat, lon],
-                    {
-                        radius: 30,
-                        color: color,
-                        fillColor: color,
-                        fillOpacity: 0.10,
-                        weight: 1
-                    }
-                );
-
-
-            marker.bindPopup(
-                createGridPopup(
-                    metric,
-                    value,
-                    lat,
-                    lon
-                )
-            );
-
-
-            marker.addTo(
-                weatherGridLayer
-            );
-
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   GRID VISUAL VALUE
-   ========================================================= */
-
-function getGridVisualValue(
+function createGridWeatherPopup(
     metric,
-    row,
-    col
+    value,
+    lat,
+    lon,
+    weather
 ) {
 
-    const w =
-        currentWeather.current;
+    const units = {
+
+        temperature: "°C",
+        humidity: "%",
+        pressure: "hPa",
+        rain: "mm",
+        cloud: "%"
+
+    };
 
 
-    let value =
-        getMetricValue(
-            metric,
-            w
-        );
+    const names = {
+
+        temperature:
+            "Temperature",
+
+        humidity:
+            "Humidity",
+
+        pressure:
+            "Pressure",
+
+        rain:
+            "Rain",
+
+        cloud:
+            "Cloud Cover"
+
+    };
 
 
-    /*
-      Keep visual grid centered around
-      the real current observation.
-    */
+    return `
 
-    const offset =
-        (
-            row +
-            col -
-            4
-        ) * 0.25;
+        <div class="weather-popup">
 
+            <div class="popup-title">
+                LIVE WEATHER GRID
+            </div>
 
-    if (metric === "temperature") {
-        value += offset;
-    }
+            <div>
+                <strong>
+                    ${names[metric] || metric}:
+                </strong>
 
+                ${round(value)}
+                ${units[metric] || ""}
+            </div>
 
-    if (metric === "humidity") {
-        value += offset * 1.5;
-    }
+            <hr>
 
+            <div>
+                🌡 Temperature:
+                ${round(weather.temperature_2m)}
+                °C
+            </div>
 
-    if (metric === "pressure") {
-        value += offset * 0.8;
-    }
+            <div>
+                💧 Humidity:
+                ${round(weather.relative_humidity_2m)}
+                %
+            </div>
 
+            <div>
+                🧭 Pressure:
+                ${round(weather.surface_pressure)}
+                hPa
+            </div>
 
-    if (metric === "rain") {
-        value =
-            Math.max(
-                0,
-                value + offset * 0.1
-            );
-    }
+            <div>
+                🌬 Wind:
+                ${round(weather.wind_speed_10m)}
+                km/h
+            </div>
 
+            <div>
+                🧭 Direction:
+                ${degreesToCompass(
+                    weather.wind_direction_10m
+                )}
+                ${
+                    round(
+                        weather.wind_direction_10m
+                    )
+                }°
+            </div>
 
-    return value;
+            <div>
+                🌧 Rain:
+                ${round(weather.precipitation)}
+                mm
+            </div>
+
+            <div>
+                ☁️ Cloud:
+                ${round(weather.cloud_cover)}
+                %
+            </div>
+
+            <div class="popup-note">
+                Open-Meteo live weather-model sample
+                <br>
+                ${lat.toFixed(4)},
+                ${lon.toFixed(4)}
+            </div>
+
+        </div>
+
+    `;
 
 }
 
@@ -825,16 +2236,94 @@ function getGridVisualValue(
    WIND FIELD
    ========================================================= */
 
-function drawWindField() {
+function drawWindField(
+    points
+) {
 
-    if (!currentWeather?.current) {
+    if (
+        !currentWeather?.current
+    ) {
         return;
     }
 
 
     windLayer =
-        L.layerGroup().addTo(map);
+        L.layerGroup().addTo(
+            map
+        );
 
+
+    /*
+     * Actual grid wind data.
+     */
+
+    if (
+        Array.isArray(points) &&
+        points.length
+    ) {
+
+        points.forEach(
+            point => {
+
+                const w =
+                    point.current ||
+                    {};
+
+
+                const speed =
+                    Number(
+                        w.wind_speed_10m
+                    );
+
+
+                const direction =
+                    Number(
+                        w.wind_direction_10m
+                    );
+
+
+                if (
+                    !Number.isFinite(speed) ||
+                    !Number.isFinite(direction)
+                ) {
+                    return;
+                }
+
+
+                const marker =
+                    createWindMarker(
+                        point.lat,
+                        point.lon,
+                        speed,
+                        direction,
+                        false
+                    );
+
+
+                marker.bindPopup(
+                    createWindPopup(
+                        speed,
+                        direction
+                    )
+                );
+
+
+                marker.addTo(
+                    windLayer
+                );
+
+            }
+        );
+
+
+        return;
+
+    }
+
+
+    /*
+     * Fallback actual center wind.
+     */
 
     const w =
         currentWeather.current;
@@ -852,118 +2341,22 @@ function drawWindField() {
         );
 
 
-    /* Main center wind */
-
-    const centerArrow =
-        createWindMarker(
-            currentLat,
-            currentLon,
+    createWindMarker(
+        currentLat,
+        currentLon,
+        speed,
+        direction,
+        true
+    )
+    .bindPopup(
+        createWindPopup(
             speed,
-            direction,
-            true
-        );
-
-
-    centerArrow
-        .bindPopup(
-            createWindPopup(
-                speed,
-                direction
-            )
+            direction
         )
-        .addTo(windLayer);
-
-
-    /* Grid */
-
-    const gridSize = 7;
-
-    const spacing = 0.10;
-
-
-    const baseLat =
-        currentLat -
-        ((gridSize - 1) * spacing) / 2;
-
-
-    const baseLon =
-        currentLon -
-        ((gridSize - 1) * spacing) / 2;
-
-
-    for (
-        let row = 0;
-        row < gridSize;
-        row++
-    ) {
-
-        for (
-            let col = 0;
-            col < gridSize;
-            col++
-        ) {
-
-            if (
-                row === 3 &&
-                col === 3
-            ) {
-                continue;
-            }
-
-
-            const lat =
-                baseLat +
-                row * spacing;
-
-
-            const lon =
-                baseLon +
-                col * spacing;
-
-
-            /*
-              Small direction variation
-              is only visual interpolation.
-            */
-
-            const localDirection =
-                normalizeAngle(
-                    direction +
-                    (
-                        row - 3
-                    ) * 5 +
-                    (
-                        col - 3
-                    ) * 3
-                );
-
-
-            const localSpeed =
-                Math.max(
-                    0,
-                    speed +
-                    (
-                        row - 3
-                    ) * 0.5 +
-                    (
-                        col - 3
-                    ) * 0.4
-                );
-
-
-            createWindMarker(
-                lat,
-                lon,
-                localSpeed,
-                localDirection,
-                false
-            ).addTo(
-                windLayer
-            );
-
-        }
-
-    }
+    )
+    .addTo(
+        windLayer
+    );
 
 }
 
@@ -981,14 +2374,12 @@ function createWindMarker(
 ) {
 
     /*
-      Meteorological direction tells us
-      where the wind is coming FROM.
-
-      Arrow should visually point toward
-      where it is going.
-
-      Therefore +180°.
-    */
+     * Meteorological direction tells us
+     * where wind comes FROM.
+     *
+     * Arrow visually points toward
+     * where wind is moving.
+     */
 
     const movementDirection =
         normalizeAngle(
@@ -997,7 +2388,9 @@ function createWindMarker(
 
 
     const size =
-        main ? 44 : 34;
+        main
+            ? 44
+            : 34;
 
 
     const html = `
@@ -1028,17 +2421,27 @@ function createWindMarker(
 
 
     return L.marker(
-        [lat, lon],
+        [
+            lat,
+            lon
+        ],
         {
             icon:
                 L.divIcon({
                     className:
                         "wind-div-icon",
-                    html: html,
+
+                    html:
+                        html,
+
                     iconSize:
                         [size, size],
+
                     iconAnchor:
-                        [size / 2, size / 2]
+                        [
+                            size / 2,
+                            size / 2
+                        ]
                 })
         }
     );
@@ -1085,9 +2488,10 @@ function createWindPopup(
             </div>
 
             <div class="popup-note">
-                Wind direction is the
-                direction the wind is
-                coming FROM.
+                Arrow shows approximate
+                movement direction.
+                <br>
+                Source: Open-Meteo
             </div>
 
         </div>
@@ -1119,7 +2523,10 @@ function createWeatherPopup(
             "Pressure",
 
         rain:
-            "Rain"
+            "Rain",
+
+        cloud:
+            "Cloud Cover"
 
     };
 
@@ -1136,7 +2543,10 @@ function createWeatherPopup(
             "hPa",
 
         rain:
-            "mm"
+            "mm",
+
+        cloud:
+            "%"
 
     };
 
@@ -1160,7 +2570,9 @@ function createWeatherPopup(
 
             <div>
                 Wind:
-                ${round(weather.wind_speed_10m)}
+                ${round(
+                    weather.wind_speed_10m
+                )}
                 km/h
             </div>
 
@@ -1181,70 +2593,15 @@ function createWeatherPopup(
                 )}%
             </div>
 
-            <div class="popup-note">
-                Source: Open-Meteo
-            </div>
-
-        </div>
-
-    `;
-
-}
-
-
-/* =========================================================
-   GRID POPUP
-   ========================================================= */
-
-function createGridPopup(
-    metric,
-    value,
-    lat,
-    lon
-) {
-
-    const units = {
-
-        temperature: "°C",
-
-        humidity: "%",
-
-        pressure: "hPa",
-
-        rain: "mm"
-
-    };
-
-
-    return `
-
-        <div class="weather-popup">
-
-            <div class="popup-title">
-                WEATHER GRID
-            </div>
-
             <div>
-                <strong>
-                    ${capitalize(metric)}:
-                </strong>
-
-                ${round(value)}
-                ${units[metric]}
-            </div>
-
-            <div>
-                Latitude:
-                ${lat.toFixed(4)}
-            </div>
-
-            <div>
-                Longitude:
-                ${lon.toFixed(4)}
+                Cloud:
+                ${round(
+                    weather.cloud_cover
+                )}%
             </div>
 
             <div class="popup-note">
-                Sampled weather field
+                Source: Open-Meteo
             </div>
 
         </div>
@@ -1263,6 +2620,11 @@ function getMetricValue(
     weather
 ) {
 
+    if (!weather) {
+        return null;
+    }
+
+
     switch (metric) {
 
         case "temperature":
@@ -1276,6 +2638,9 @@ function getMetricValue(
 
         case "rain":
             return weather.precipitation;
+
+        case "cloud":
+            return weather.cloud_cover;
 
         default:
             return 0;
@@ -1294,7 +2659,20 @@ function getMetricColor(
     value
 ) {
 
-    if (metric === "temperature") {
+    value =
+        Number(value);
+
+
+    if (
+        !Number.isFinite(value)
+    ) {
+        return "#00e5ff";
+    }
+
+
+    if (
+        metric === "temperature"
+    ) {
 
         if (value >= 40)
             return "#ff1744";
@@ -1308,11 +2686,17 @@ function getMetricColor(
         if (value >= 20)
             return "#00e676";
 
-        return "#00b0ff";
+        if (value >= 10)
+            return "#00b0ff";
+
+        return "#2962ff";
+
     }
 
 
-    if (metric === "humidity") {
+    if (
+        metric === "humidity"
+    ) {
 
         if (value >= 85)
             return "#1565c0";
@@ -1324,10 +2708,13 @@ function getMetricColor(
             return "#00e5ff";
 
         return "#76ff03";
+
     }
 
 
-    if (metric === "pressure") {
+    if (
+        metric === "pressure"
+    ) {
 
         if (value < 1000)
             return "#ff1744";
@@ -1339,10 +2726,13 @@ function getMetricColor(
             return "#00e676";
 
         return "#2979ff";
+
     }
 
 
-    if (metric === "rain") {
+    if (
+        metric === "rain"
+    ) {
 
         if (value >= 20)
             return "#d50000";
@@ -1357,6 +2747,28 @@ function getMetricColor(
             return "#00b0ff";
 
         return "#90caf9";
+
+    }
+
+
+    if (
+        metric === "cloud"
+    ) {
+
+        if (value >= 90)
+            return "#455a64";
+
+        if (value >= 70)
+            return "#607d8b";
+
+        if (value >= 50)
+            return "#90a4ae";
+
+        if (value >= 25)
+            return "#cfd8dc";
+
+        return "#e3f2fd";
+
     }
 
 
@@ -1383,12 +2795,17 @@ function updateMapInfo() {
         );
 
 
-    if (!el || !updated) {
+    if (
+        !el ||
+        !updated
+    ) {
         return;
     }
 
 
-    if (!currentWeather?.current) {
+    if (
+        !currentWeather?.current
+    ) {
 
         el.textContent =
             "Loading...";
@@ -1402,18 +2819,28 @@ function updateMapInfo() {
         currentWeather.current;
 
 
-    if (currentMetric === "wind") {
+    if (
+        currentMetric === "wind"
+    ) {
 
         el.innerHTML = `
-            🌬 ${round(
+
+            🌬
+            ${round(
                 w.wind_speed_10m
-            )} km/h
-            • ${degreesToCompass(
+            )}
+            km/h
+
+            •
+            ${degreesToCompass(
                 w.wind_direction_10m
             )}
-            • ${round(
+
+            •
+            ${round(
                 w.wind_direction_10m
             )}°
+
         `;
 
     }
@@ -1429,24 +2856,36 @@ function updateMapInfo() {
 
         const units = {
 
-            temperature: "°C",
+            temperature:
+                "°C",
 
-            humidity: "%",
+            humidity:
+                "%",
 
-            pressure: "hPa",
+            pressure:
+                "hPa",
 
-            rain: "mm"
+            rain:
+                "mm",
+
+            cloud:
+                "%"
 
         };
 
 
         el.innerHTML = `
-            ${capitalize(
+
+            ${metricDisplayName(
                 currentMetric
             )}
+
             :
+
             ${round(value)}
-            ${units[currentMetric]}
+
+            ${units[currentMetric] || ""}
+
         `;
 
     }
@@ -1454,7 +2893,8 @@ function updateMapInfo() {
 
     updated.textContent =
         "Updated: " +
-        new Date().toLocaleTimeString();
+        new Date()
+            .toLocaleTimeString();
 
 }
 
@@ -1463,11 +2903,33 @@ function updateMapInfo() {
    GPS
    ========================================================= */
 
-function locateUser() {
+function locateUser(
+    centerMap = false
+) {
 
-    if (!navigator.geolocation) {
+    if (
+        !navigator.geolocation
+    ) {
+
+        console.warn(
+            "Geolocation not supported."
+        );
 
         return;
+
+    }
+
+
+    const status =
+        document.getElementById(
+            "mapSearchStatus"
+        );
+
+
+    if (status) {
+
+        status.textContent =
+            "Getting GPS location...";
 
     }
 
@@ -1488,13 +2950,35 @@ function locateUser() {
             );
 
 
-            map.setView(
-                [currentLat, currentLon],
-                10
-            );
+            if (
+                centerMap
+            ) {
+
+                map.setView(
+                    [
+                        currentLat,
+                        currentLon
+                    ],
+                    11,
+                    {
+                        animate: true
+                    }
+                );
+
+            }
 
 
             loadWeather();
+
+            loadMapWeatherGrid();
+
+
+            if (status) {
+
+                status.textContent =
+                    "GPS location found";
+
+            }
 
         },
 
@@ -1506,12 +2990,27 @@ function locateUser() {
                 error.message
             );
 
+
+            if (status) {
+
+                status.textContent =
+                    "GPS unavailable";
+
+            }
+
         },
 
+
         {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000
+            enableHighAccuracy:
+                true,
+
+            timeout:
+                10000,
+
+            maximumAge:
+                300000
+
         }
 
     );
@@ -1527,17 +3026,25 @@ function updateGPSMarker(
     accuracy
 ) {
 
-    if (gpsMarker) {
+    if (
+        gpsMarker
+    ) {
+
         map.removeLayer(
             gpsMarker
         );
+
     }
 
 
-    if (gpsAccuracyCircle) {
+    if (
+        gpsAccuracyCircle
+    ) {
+
         map.removeLayer(
             gpsAccuracyCircle
         );
+
     }
 
 
@@ -1552,30 +3059,43 @@ function updateGPSMarker(
                     L.divIcon({
                         className:
                             "gps-live-icon",
+
                         html:
                             `
                             <div class="gps-pulse">
                                 <div class="gps-dot"></div>
                             </div>
                             `,
+
                         iconSize:
                             [32, 32],
+
                         iconAnchor:
                             [16, 16]
                     })
             }
         )
         .bindPopup(`
-            <strong>📍 LIVE GPS</strong>
+
+            <strong>
+                📍 LIVE GPS
+            </strong>
+
             <br>
+
             Latitude:
             ${currentLat.toFixed(6)}
+
             <br>
+
             Longitude:
             ${currentLon.toFixed(6)}
+
             <br>
+
             Accuracy:
             ${round(accuracy)} m
+
         `)
         .addTo(map);
 
@@ -1587,11 +3107,20 @@ function updateGPSMarker(
                 currentLon
             ],
             {
-                radius: accuracy,
-                color: "#00e5ff",
-                fillColor: "#00e5ff",
-                fillOpacity: 0.08,
-                weight: 1
+                radius:
+                    accuracy,
+
+                color:
+                    "#00e5ff",
+
+                fillColor:
+                    "#00e5ff",
+
+                fillOpacity:
+                    0.08,
+
+                weight:
+                    1
             }
         )
         .addTo(map);
@@ -1641,7 +3170,9 @@ function updateWeatherChart() {
         );
 
 
-    if (weatherChart) {
+    if (
+        weatherChart
+    ) {
 
         weatherChart.destroy();
 
@@ -1652,24 +3183,27 @@ function updateWeatherChart() {
         new Chart(
             canvas,
             {
-                type: "line",
+                type:
+                    "line",
 
                 data: {
 
-                    labels: labels.map(
-                        time =>
-                            new Date(
-                                time
-                            ).toLocaleTimeString(
-                                [],
-                                {
-                                    hour:
-                                        "2-digit",
-                                    minute:
-                                        "2-digit"
-                                }
-                            )
-                    ),
+                    labels:
+                        labels.map(
+                            time =>
+                                new Date(
+                                    time
+                                ).toLocaleTimeString(
+                                    [],
+                                    {
+                                        hour:
+                                            "2-digit",
+
+                                        minute:
+                                            "2-digit"
+                                    }
+                                )
+                        ),
 
                     datasets: [
 
@@ -1685,7 +3219,6 @@ function updateWeatherChart() {
 
                             fill:
                                 true
-
                         }
 
                     ]
@@ -1694,7 +3227,8 @@ function updateWeatherChart() {
 
                 options: {
 
-                    responsive: true,
+                    responsive:
+                        true,
 
                     maintainAspectRatio:
                         false,
@@ -1767,7 +3301,9 @@ async function loadEarthquakes() {
                 );
 
 
-        if (!earthquakes.length) {
+        if (
+            !earthquakes.length
+        ) {
 
             list.innerHTML =
                 "<div>No earthquakes found.</div>";
@@ -1840,7 +3376,10 @@ function generateAlerts() {
         );
 
 
-    if (!list || !currentWeather) {
+    if (
+        !list ||
+        !currentWeather
+    ) {
         return;
     }
 
@@ -1916,7 +3455,9 @@ function generateAlerts() {
     }
 
 
-    if (!alerts.length) {
+    if (
+        !alerts.length
+    ) {
 
         alerts.push(
             "🟢 No major weather alerts"
@@ -2198,6 +3739,32 @@ function handleVoiceCommand(
     }
 
 
+    /*
+     * Map-only cloud command.
+     */
+
+    if (
+        command.includes(
+            "cloud"
+        ) ||
+        command.includes(
+            "बादल"
+        )
+    ) {
+
+        setWeatherMetric(
+            "cloud"
+        );
+
+        speak(
+            "Cloud cover map opened."
+        );
+
+        return;
+
+    }
+
+
     if (
         command.includes(
             "earthquake"
@@ -2270,7 +3837,9 @@ function handleVoiceCommand(
         )
     ) {
 
-        openApp("qr");
+        openApp(
+            "qr"
+        );
 
         return;
 
@@ -2283,7 +3852,9 @@ function handleVoiceCommand(
         )
     ) {
 
-        openApp("camera");
+        openApp(
+            "camera"
+        );
 
         return;
 
@@ -2296,7 +3867,9 @@ function handleVoiceCommand(
         )
     ) {
 
-        openApp("sos");
+        openApp(
+            "sos"
+        );
 
         return;
 
@@ -2335,6 +3908,8 @@ function handleVoiceCommand(
 
         loadWeather();
 
+        loadMapWeatherGrid();
+
         loadEarthquakes();
 
         speak(
@@ -2357,7 +3932,9 @@ function handleVoiceCommand(
    TTS
    ========================================================= */
 
-function speak(text) {
+function speak(
+    text
+) {
 
     if (
         !window.speechSynthesis
@@ -2481,7 +4058,9 @@ function scrollToCard(
 ) {
 
     const element =
-        document.getElementById(id);
+        document.getElementById(
+            id
+        );
 
 
     if (!element) {
@@ -2490,8 +4069,11 @@ function scrollToCard(
 
 
     element.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
+        behavior:
+            "smooth",
+
+        block:
+            "center"
     });
 
 }
@@ -2523,18 +4105,28 @@ function round(
 }
 
 
+/* =========================================================
+   ANGLE
+   ========================================================= */
+
 function normalizeAngle(
     angle
 ) {
 
     return (
         (
-            Number(angle) % 360
-        ) + 360
+            Number(angle) %
+            360
+        ) +
+        360
     ) % 360;
 
 }
 
+
+/* =========================================================
+   COMPASS
+   ========================================================= */
 
 function degreesToCompass(
     degrees
@@ -2558,14 +4150,59 @@ function degreesToCompass(
         Math.round(
             normalizeAngle(
                 degrees
-            ) / 45
-        ) % 8;
+            ) /
+            45
+        ) %
+        8;
 
 
     return directions[index];
 
 }
 
+
+/* =========================================================
+   METRIC NAME
+   ========================================================= */
+
+function metricDisplayName(
+    metric
+) {
+
+    const names = {
+
+        temperature:
+            "Temperature",
+
+        humidity:
+            "Humidity",
+
+        pressure:
+            "Pressure",
+
+        wind:
+            "Wind",
+
+        rain:
+            "Rain",
+
+        cloud:
+            "Cloud Cover"
+
+    };
+
+
+    return (
+        names[metric] ||
+        capitalize(metric)
+    );
+
+}
+
+
+/* =========================================================
+   CAPITALIZE
+   ========================================================= */
 
 function capitalize(
     text
@@ -2585,13 +4222,19 @@ function capitalize(
 }
 
 
+/* =========================================================
+   SET TEXT
+   ========================================================= */
+
 function setText(
     id,
     value
 ) {
 
     const element =
-        document.getElementById(id);
+        document.getElementById(
+            id
+        );
 
 
     if (element) {
@@ -2604,6 +4247,10 @@ function setText(
 }
 
 
+/* =========================================================
+   VOICE STATUS
+   ========================================================= */
+
 function setVoiceStatus(
     text
 ) {
@@ -2615,6 +4262,10 @@ function setVoiceStatus(
 
 }
 
+
+/* =========================================================
+   WEATHER ERROR
+   ========================================================= */
 
 function showWeatherError() {
 
@@ -2666,3 +4317,9 @@ window.loadWeather =
 
 window.loadEarthquakes =
     loadEarthquakes;
+
+window.locateUser =
+    locateUser;
+
+window.searchMapLocation =
+    searchMapLocation;
