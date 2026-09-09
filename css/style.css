@@ -1162,3 +1162,223 @@ header p{
     }
 
 }
+/* =========================================================
+   MAP V3 SEARCH / LOCATION / LEGEND
+   ========================================================= */
+
+.map-search-control{
+    background:rgba(3,12,21,.96);
+    border:1px solid rgba(0,220,255,.45);
+    border-radius:14px;
+    padding:9px;
+    min-width:285px;
+    box-shadow:
+        0 8px 25px rgba(0,0,0,.45),
+        0 0 18px rgba(0,220,255,.12);
+    backdrop-filter:blur(12px);
+}
+
+.map-search-row{
+    display:flex;
+    gap:6px;
+}
+
+.map-search-row input{
+    width:220px;
+    padding:9px 10px;
+    border-radius:9px;
+    border:1px solid #20556d;
+    background:#06131f;
+    color:#eaffff;
+    outline:none;
+    font-size:12px;
+}
+
+.map-search-row input:focus{
+    border-color:#00e5ff;
+    box-shadow:0 0 10px rgba(0,229,255,.18);
+}
+
+.map-search-row button{
+    width:42px;
+    border:none;
+    border-radius:9px;
+    background:#063247;
+    color:#00e5ff;
+    cursor:pointer;
+    font-size:17px;
+}
+
+.map-search-row button:hover{
+    background:#0a4b68;
+}
+
+.map-search-status{
+    margin-top:6px;
+    color:#76b9c8;
+    font-size:9px;
+}
+
+.map-search-results{
+    margin-top:5px;
+    max-height:180px;
+    overflow-y:auto;
+}
+
+.map-search-result{
+    display:block;
+    width:100%;
+    margin:3px 0;
+    padding:7px;
+    text-align:left;
+    border-radius:8px;
+    border:1px solid rgba(0,220,255,.12);
+    background:rgba(0,220,255,.04);
+    color:#dffaff;
+    cursor:pointer;
+    font-size:9px;
+}
+
+.map-search-result:hover{
+    background:rgba(0,220,255,.15);
+    border-color:#00e5ff;
+}
+
+.map-search-result strong{
+    font-weight:normal;
+}
+
+.map-location-control{
+    margin-top:8px;
+}
+
+.map-location-control button{
+    padding:9px 13px;
+    border-radius:10px;
+    border:1px solid rgba(0,229,255,.45);
+    background:rgba(3,12,21,.96);
+    color:#dffcff;
+    cursor:pointer;
+    font-size:11px;
+    font-weight:bold;
+    box-shadow:
+        0 5px 18px rgba(0,0,0,.4),
+        0 0 12px rgba(0,229,255,.1);
+}
+
+.map-location-control button:hover{
+    background:rgba(0,229,255,.16);
+    border-color:#00e5ff;
+    color:#fff;
+}
+
+.map-weather-legend{
+    min-width:150px;
+    padding:10px 12px;
+    border-radius:11px;
+    background:rgba(3,12,21,.94);
+    border:1px solid rgba(0,220,255,.35);
+    color:#dffaff;
+    box-shadow:
+        0 8px 25px rgba(0,0,0,.45);
+    backdrop-filter:blur(10px);
+    font-size:10px;
+}
+
+.map-weather-legend b{
+    display:block;
+    color:#00e5ff;
+    margin-bottom:7px;
+    letter-spacing:.7px;
+}
+
+.legend-gradient{
+    height:9px;
+    border-radius:8px;
+    margin-bottom:4px;
+}
+
+.temp-gradient{
+    background:linear-gradient(
+        90deg,
+        #2962ff,
+        #00b0ff,
+        #00e676,
+        #ffd600,
+        #ff6d00,
+        #ff1744
+    );
+}
+
+.humidity-gradient{
+    background:linear-gradient(
+        90deg,
+        #76ff03,
+        #00e5ff,
+        #00b0ff,
+        #1565c0
+    );
+}
+
+.pressure-gradient{
+    background:linear-gradient(
+        90deg,
+        #ff1744,
+        #ff9100,
+        #00e676,
+        #2979ff
+    );
+}
+
+.rain-gradient{
+    background:linear-gradient(
+        90deg,
+        #90caf9,
+        #00b0ff,
+        #ffd600,
+        #ff6d00,
+        #d50000
+    );
+}
+
+.cloud-gradient{
+    background:linear-gradient(
+        90deg,
+        #e3f2fd,
+        #cfd8dc,
+        #90a4ae,
+        #607d8b,
+        #455a64
+    );
+}
+
+.legend-wind{
+    padding:6px;
+    border-radius:6px;
+    background:rgba(0,229,255,.06);
+    color:#00e5ff;
+}
+
+.legend-labels{
+    display:flex;
+    justify-content:space-between;
+    color:#779aa5;
+    font-size:8px;
+}
+
+@media(max-width:700px){
+
+    .map-search-control{
+        min-width:220px;
+    }
+
+    .map-search-row input{
+        width:165px;
+    }
+
+    .map-weather-legend{
+        min-width:125px;
+        font-size:9px;
+    }
+
+}
