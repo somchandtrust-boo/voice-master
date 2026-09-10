@@ -2759,234 +2759,234 @@ document
 
 function processCommand(command){
 
-    if(matches(command,[
-        "open map",
-        "show map",
-        "map",
-        "नक्शा खोलो",
-        "मैप खोलो",
-        "नक्शा",
-        "मैप"
-    ])){
-
-        openMap();
-
-        speak(
-            "Live map is open."
-        );
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "gps",
-        "show location",
-        "my location",
-        "where am i",
-        "location",
-        "जीपीएस",
-        "लोकेशन",
-        "मेरी लोकेशन",
-        "स्थान"
-    ])){
-
-        getGPS();
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "start siren",
-        "siren on",
-        "alarm",
-        "सायरन चालू",
-        "सायरन चालू करो",
-        "अलार्म चालू"
-    ])){
-
-        if(!sirenOscillator){
-
-            startSiren();
-
-        }
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "stop siren",
-        "siren off",
-        "सायरन बंद",
-        "सायरन बंद करो"
-    ])){
-
-        stopSiren();
-
-        speak(
-            "Siren stopped."
-        );
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "emergency",
-        "emergency alert",
-        "alert",
-        "danger",
-        "इमरजेंसी",
-        "इमरजेंसी अलर्ट",
-        "अलर्ट",
-        "खतरा"
-    ])){
-
-        if(!alertActive){
-
-            activateAlert();
-
-        }
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "open report",
-        "show report",
-        "report",
-        "रिपोर्ट",
-        "रिपोर्ट खोलो"
-    ])){
-
-        openReport();
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "stop",
-        "stop all",
-        "cancel",
-        "सब बंद",
-        "सब बंद करो",
-        "सिस्टम बंद",
-        "रुको"
-    ])){
-
-        stopEverything();
-
-        speak(
-            "All systems stopped."
-        );
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "status",
-        "system status",
-        "स्थिति",
-        "सिस्टम स्टेटस"
-    ])){
-
-        speak(
-            "CBRND command center is online and ready."
-        );
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "temperature",
-        "temperature status",
-        "तापमान",
-        "तापमान बताओ"
-    ])){
-
-        const value =
-            document
-            .getElementById("temp")
-            .innerText;
-
-
-        if(value === "--"){
-
-            speak(
-                "Temperature data is not loaded."
-            );
-
-        }else{
-
-            speak(
-                "Average temperature is " +
-                value +
-                " degrees Celsius."
-            );
-
-        }
-
-        return;
-
-    }
-
-
-    if(matches(command,[
-        "radiation",
-        "radiation status",
-        "रेडिएशन",
-        "विकिरण"
-    ])){
-
-        const value =
-            document
-            .getElementById(
-                "radiation"
-            )
-            .innerText;
-
-
-        if(value === "--"){
-
-            speak(
-                "Radiation data is not loaded."
-            );
-
-        }else{
-
-            speak(
-                "Average radiation is " +
-                value +
-                " microsieverts per hour."
-            );
-
-        }
-
-        return;
-
-    }
-
+  const c = String(command || "")
+    .toLowerCase()
+    .replace(/[.,!?;:]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!c) return;
+
+
+  /* ================================
+     STOP SIREN
+     ================================ */
+  if (
+    c.includes("stop siren") ||
+    c.includes("siren off") ||
+    c.includes("siren band") ||
+    c.includes("siren bandh") ||
+    c.includes("सायरन बंद") ||
+    c.includes("सायरन बन्द")
+  ) {
+    stopSiren();
+    return;
+  }
+
+
+  /* ================================
+     STOP EVERYTHING
+     ================================ */
+  if (
+    c === "stop" ||
+    c.includes("stop everything") ||
+    c.includes("सब बंद") ||
+    c.includes("सब बन्द") ||
+    c.includes("सब कुछ बंद") ||
+    c.includes("सब कुछ बन्द") ||
+    c.includes("रुको") ||
+    c.includes("रुक जाओ")
+  ) {
+    stopEverything();
+    return;
+  }
+
+
+  /* ================================
+     LOCATION TRACKER
+     IMPORTANT:
+     Before generic GPS/location
+     ================================ */
+  if (
+    c.includes("location tracker") ||
+    c.includes("live tracker") ||
+    c.includes("open tracker") ||
+    c.includes("लोकेशन ट्रैकर") ||
+    c.includes("लोकेशन ट्रैकर खोलो") ||
+    c.includes("लाइव ट्रैकर")
+  ) {
+    openApp("location", true);
+    return;
+  }
+
+
+  /* ================================
+     QR GENERATOR
+     ================================ */
+  if (
+    c.includes("qr") ||
+    c.includes("q r") ||
+    c.includes("qr generator") ||
+    c.includes("open qr") ||
+    c.includes("क्यूआर") ||
+    c.includes("क्यू आर") ||
+    c.includes("क्यूआर खोलो")
+  ) {
+    openApp("qr", true);
+    return;
+  }
+
+
+  /* ================================
+     SMART CAMERA
+     ================================ */
+  if (
+    c.includes("camera") ||
+    c.includes("open camera") ||
+    c.includes("smart camera") ||
+    c.includes("कैमरा") ||
+    c.includes("कैमरा खोलो")
+  ) {
+    openApp("camera", true);
+    return;
+  }
+
+
+  /* ================================
+     SOS
+     ================================ */
+  if (
+    c.includes("sos") ||
+    c.includes("s o s") ||
+    c.includes("open sos") ||
+    c.includes("sos siren") ||
+    c.includes("एसओएस") ||
+    c.includes("एस ओ एस") ||
+    c.includes("एसओएस खोलो")
+  ) {
+    openApp("sos", true);
+    return;
+  }
+
+
+  /* ================================
+     SIREN ON
+     ================================ */
+  if (
+    c.includes("start siren") ||
+    c.includes("open siren") ||
+    c.includes("siren on") ||
+    c.includes("turn on siren") ||
+    c.includes("सायरन चालू") ||
+    c.includes("सायरन चालु") ||
+    c.includes("सायरन ऑन") ||
+    c.includes("सायरन खोलो")
+  ) {
+    startSiren();
+    return;
+  }
+
+
+  /* ================================
+     ALERT
+     ================================ */
+  if (
+    c.includes("alert") ||
+    c.includes("open alert") ||
+    c.includes("activate alert") ||
+    c.includes("अलर्ट") ||
+    c.includes("अलर्ट चालू") ||
+    c.includes("अलर्ट खोलो")
+  ) {
+    activateAlert();
+    return;
+  }
+
+
+  /* ================================
+     GPS
+     ================================ */
+  if (
+    c.includes("gps") ||
+    c.includes("g p s") ||
+    c.includes("open gps") ||
+    c.includes("get gps") ||
+    c.includes("my location") ||
+    c.includes("current location") ||
+    c.includes("जीपीएस") ||
+    c.includes("जी पी एस") ||
+    c.includes("जीपीएस चालू") ||
+    c.includes("मेरी लोकेशन")
+  ) {
+    getGPS();
+    return;
+  }
+
+
+  /* ================================
+     MAP
+     ================================ */
+  if (
+    c.includes("map") ||
+    c.includes("open map") ||
+    c.includes("live map") ||
+    c.includes("show map") ||
+    c.includes("मैप") ||
+    c.includes("मानचित्र") ||
+    c.includes("मैप खोलो") ||
+    c.includes("मैप दिखाओ")
+  ) {
+    openMap();
+    return;
+  }
+
+
+  /* ================================
+     SYSTEM STATUS
+     ================================ */
+  if (
+    c.includes("status") ||
+    c.includes("system status") ||
+    c.includes("स्टेटस") ||
+    c.includes("स्थिति")
+  ) {
+
+    const gps =
+      document.getElementById("gpsStatus").textContent;
 
     speak(
-        "Command not recognized. Please try another command."
+      "System status. GPS is " +
+      gps +
+      ". Siren is " +
+      (sirenRunning ? "on" : "off") +
+      "."
     );
 
-}
+    addHistory(
+      "STATUS",
+      "GPS " +
+      gps +
+      " | SIREN " +
+      (sirenRunning ? "ON" : "OFF")
+    );
 
+    return;
+  }
+
+
+  /* ================================
+     UNKNOWN COMMAND
+     ================================ */
+  showModal(
+    "COMMAND NOT RECOGNIZED",
+    "Command received: " +
+    command +
+    "<br><br>" +
+    "Try: Open Map, Open GPS, Open Siren, Open Alert, Open QR, Open Camera, Open SOS, Open Location Tracker, or Stop."
+  );
+
+  speak("Command not recognized.");
+}
 
 /* =========================================
    MATCH COMMAND
