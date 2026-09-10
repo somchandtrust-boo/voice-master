@@ -1354,7 +1354,97 @@ let listening = false;
 
 let lastReport = null;
 
+/* =========================================
+   CBRND APP LINKS
+========================================= */
 
+const APP_LINKS = {
+
+    qr:
+        "https://somchandtrust-boo.github.io/CBRND-QR",
+
+    camera:
+        "https://somchandtrust-boo.github.io/hd-smart-camera/",
+
+    sos:
+        "YOUR_SOS_SIREN_URL",
+
+    location:
+        "https://somchandtrust-boo.github.io/CBRND-Location-Tracker/admin.html"
+
+};
+/* =========================================
+   OPEN CBRND APPLICATION
+========================================= */
+
+function openApp(appName){
+
+    const url =
+        APP_LINKS[appName];
+
+    if(!url){
+
+        showModal(
+            "LINK ERROR",
+            "Application link is not configured."
+        );
+
+        return;
+
+    }
+
+
+    if(
+        url === "YOUR_SOS_SIREN_URL"
+    ){
+
+        showModal(
+            "SOS SIREN LINK",
+            "Please add your real SOS Siren URL in APP_LINKS.sos."
+        );
+
+        return;
+
+    }
+
+
+    addHistory(
+        "APP",
+        "OPENING " + appName.toUpperCase()
+    );
+
+
+    const popup =
+        window.open(
+            url,
+            "_blank",
+            "noopener,noreferrer"
+        );
+
+
+    if(!popup){
+
+        showModal(
+            "POPUP BLOCKED",
+            "Browser blocked the new tab. Please allow popups for this site."
+        );
+
+        return;
+
+    }
+
+
+    speak(
+        appName === "qr"
+            ? "QR Generator is opening."
+            : appName === "camera"
+            ? "Smart Camera is opening."
+            : appName === "sos"
+            ? "SOS Siren is opening."
+            : "Location Tracker is opening."
+    );
+
+}
 /* =========================================
    MAP INITIALIZATION
 ========================================= */
