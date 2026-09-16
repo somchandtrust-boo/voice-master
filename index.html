@@ -1022,6 +1022,56 @@ header{
     </small>
 
 </button>
+
+<!-- COMPASS -->
+<button
+    class="control"
+    onclick="openCompass()">
+    <span class="icon">🧭</span>
+    COMPASS
+    <br>
+    <small>Open digital compass</small>
+</button>
+
+<!-- AI VOICE ASSISTANT -->
+<button
+    class="control"
+    onclick="openApp('ai')">
+    <span class="icon">🤖</span>
+    AI • VOICE ASSISTANT
+    <br>
+    <small>Open AI voice assistant</small>
+</button>
+
+<!-- INSTAGRAM -->
+<button
+    class="control"
+    onclick="openSocial('instagram')">
+    <span class="icon">📸</span>
+    INSTAGRAM
+    <br>
+    <small>Open Instagram</small>
+</button>
+
+<!-- FACEBOOK -->
+<button
+    class="control"
+    onclick="openSocial('facebook')">
+    <span class="icon">f</span>
+    FACEBOOK
+    <br>
+    <small>Open Facebook</small>
+</button>
+
+<!-- WHATSAPP -->
+<button
+    class="control"
+    onclick="openSocial('whatsapp')">
+    <span class="icon">💬</span>
+    WHATSAPP
+    <br>
+    <small>Open WhatsApp</small>
+</button>
                 
 
 
@@ -1366,7 +1416,10 @@ const APP_LINKS = {
         "YOUR_SOS_SIREN_URL",
 
     location:
-        "https://somchandtrust-boo.github.io/CBRND-Location-Tracker/admin.html"
+        "https://somchandtrust-boo.github.io/CBRND-Location-Tracker/admin.html",
+
+    ai:
+        "YOUR_AI_VOICE_ASSISTANT_URL"
 
 };
 /* =========================================
@@ -1391,12 +1444,13 @@ function openApp(appName){
 
 
     if(
-        url === "YOUR_SOS_SIREN_URL"
+        url === "YOUR_SOS_SIREN_URL" ||
+        url === "YOUR_AI_VOICE_ASSISTANT_URL"
     ){
 
         showModal(
             "SOS SIREN LINK",
-            "Please add your real SOS Siren URL in APP_LINKS.sos."
+            appName === "sos" ? "Please add your real SOS Siren URL in APP_LINKS.sos." : "Please add your AI Voice Assistant URL in APP_LINKS.ai."
         );
 
         return;
@@ -1441,6 +1495,46 @@ function openApp(appName){
     );
 
 }
+/* =========================================
+   COMPASS + SOCIAL APPS
+========================================= */
+
+function openCompass(){
+    const url = "https://www.google.com/search?q=compass";
+    addHistory("COMPASS","COMPASS OPENED");
+    const popup = window.open(url,"_blank","noopener,noreferrer");
+    if(!popup) window.location.href = url;
+    else speak("Compass is opening.");
+}
+
+const SOCIAL_LINKS = {
+    instagram:"https://www.instagram.com/",
+    facebook:"https://www.facebook.com/",
+    whatsapp:"https://web.whatsapp.com/"
+};
+
+function openSocial(platform){
+    const url = SOCIAL_LINKS[platform];
+    if(!url) return;
+
+    addHistory("SOCIAL","OPENING " + platform.toUpperCase());
+
+    const popup = window.open(url,"_blank","noopener,noreferrer");
+
+    if(!popup){
+        window.location.href = url;
+        return;
+    }
+
+    speak(
+        platform === "instagram"
+        ? "Instagram is opening."
+        : platform === "facebook"
+        ? "Facebook is opening."
+        : "WhatsApp is opening."
+    );
+}
+
 /* =========================================
    MAP INITIALIZATION
 ========================================= */
@@ -2766,6 +2860,64 @@ function processCommand(command){
     .trim();
 
   if (!c) return;
+
+    if(
+        c.includes("compass") ||
+        c.includes("open compass") ||
+        c.includes("show compass") ||
+        c.includes("कंपास") ||
+        c.includes("कम्पास") ||
+        c.includes("कंपास खोलो") ||
+        c.includes("कम्पास खोलो")
+    ){
+        openCompass();
+        return;
+    }
+
+    if(
+        c.includes("ai voice assistant") ||
+        c.includes("voice assistant") ||
+        c.includes("open ai assistant") ||
+        c.includes("open voice assistant") ||
+        c.includes("एआई वॉइस असिस्टेंट") ||
+        c.includes("एआई वॉइस") ||
+        c.includes("वॉइस असिस्टेंट")
+    ){
+        openApp("ai");
+        return;
+    }
+
+    if(
+        c.includes("instagram") ||
+        c.includes("open instagram") ||
+        c.includes("इंस्टाग्राम") ||
+        c.includes("इंस्टा खोलो")
+    ){
+        openSocial("instagram");
+        return;
+    }
+
+    if(
+        c.includes("facebook") ||
+        c.includes("open facebook") ||
+        c.includes("फेसबुक") ||
+        c.includes("फेसबुक खोलो")
+    ){
+        openSocial("facebook");
+        return;
+    }
+
+    if(
+        c.includes("whatsapp") ||
+        c.includes("open whatsapp") ||
+        c.includes("व्हाट्सऐप") ||
+        c.includes("व्हाट्सएप") ||
+        c.includes("व्हाट्सएप खोलो") ||
+        c.includes("व्हाट्सऐप खोलो")
+    ){
+        openSocial("whatsapp");
+        return;
+    }
 
 
   /* ================================
