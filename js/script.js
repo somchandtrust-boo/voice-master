@@ -56,10 +56,10 @@ const APP_LINKS = {
     */
 
     compass:
-        "YOUR_COMPASS_URL",
+        "https://somchandtrust-boo.github.io/My-Compass/",
 
     ai:
-        "YOUR_AI_VOICE_ASSISTANT_URL"
+        "https://aivoice.wecon.group/"
 
 };
 
