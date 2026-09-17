@@ -1,7 +1,28 @@
 /* =========================================================
    CBRND REAL COMMAND CENTER V2
-   COMPLETE FIXED SCRIPT.JS
-   Voice + GPS + Map + Weather + Siren + Apps + Social
+   FINAL SCRIPT.JS
+   =========================================================
+   Features:
+   • Voice Control
+   • Hindi + English Commands
+   • GPS
+   • Live Map
+   • Weather
+   • Earthquake Monitor
+   • Siren
+   • Alert
+   • QR Generator
+   • Smart Camera
+   • SOS Siren
+   • Location Tracker
+   • CUSTOM COMPASS LINK
+   • AI Voice Assistant
+   • Instagram
+   • Facebook
+   • WhatsApp
+   • Command History
+   • TTS
+   • Report / CSV
    ========================================================= */
 
 
@@ -22,6 +43,20 @@ const APP_LINKS = {
 
     location:
         "https://somchandtrust-boo.github.io/CBRND-Location-Tracker/admin.html",
+
+    /*
+       =====================================================
+       PUT YOUR OWN COMPASS LINK HERE
+       Example:
+
+       compass:
+           "https://somchandtrust-boo.github.io/CBRND-COMPASS/",
+
+       =====================================================
+    */
+
+    compass:
+        "YOUR_COMPASS_URL",
 
     ai:
         "YOUR_AI_VOICE_ASSISTANT_URL"
@@ -60,14 +95,19 @@ let currentLon = 72.5714;
    ========================================================= */
 
 let map = null;
+
 let userMarker = null;
+
 let accuracyCircle = null;
 
 let currentBaseLayer = null;
 
 let weatherOverlayCircle = null;
+
 let weatherOverlayCircle2 = null;
+
 let weatherValueMarker = null;
+
 let weatherDirectionLine = null;
 
 
@@ -76,7 +116,9 @@ let weatherDirectionLine = null;
    ========================================================= */
 
 let currentWeather = null;
-let selectedWeatherMetric = "temperature";
+
+let selectedWeatherMetric =
+    "temperature";
 
 let weatherChart = null;
 
@@ -86,6 +128,7 @@ let weatherChart = null;
    ========================================================= */
 
 let recognition = null;
+
 let isListening = false;
 
 
@@ -94,22 +137,25 @@ let isListening = false;
    ========================================================= */
 
 let audioContext = null;
+
 let sirenOscillator = null;
+
 let sirenGain = null;
+
 let sirenTimer = null;
 
 let sirenRunning = false;
 
 
 /* =========================================================
-   ALERT VARIABLES
+   ALERT
    ========================================================= */
 
 let alertActive = false;
 
 
 /* =========================================================
-   REPORT VARIABLES
+   REPORT
    ========================================================= */
 
 let lastReport = null;
@@ -161,42 +207,49 @@ function safeHTML(id, value) {
 
 
 /* =========================================================
-   INITIALIZATION
+   START
    ========================================================= */
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
 
-    console.log(
-        "CBRND Command Center V2 starting..."
-    );
-
-
-    initMap();
-
-    initVoice();
-
-    setupButtons();
-
-    getUserLocation();
-
-    loadWeather();
-
-    loadEarthquakes();
-
-    updateGPSStatus("WAITING");
-
-    updateRadiation();
-
-    updateAirQuality();
-
-    startAutoRefresh();
+        console.log(
+            "CBRND Command Center V2 starting..."
+        );
 
 
-    console.log(
-        "CBRND Command Center V2 READY"
-    );
+        initMap();
 
-});
+        initVoice();
+
+        setupButtons();
+
+        renderHistory();
+
+        getUserLocation();
+
+        loadWeather();
+
+        loadEarthquakes();
+
+        updateGPSStatus(
+            "WAITING"
+        );
+
+        updateRadiation();
+
+        updateAirQuality();
+
+        startAutoRefresh();
+
+
+        console.log(
+            "CBRND Command Center V2 READY"
+        );
+
+    }
+);
 
 
 /* =========================================================
@@ -258,7 +311,9 @@ const baseLayers = {
 
 function initMap() {
 
-    const mapElement = el("map");
+    const mapElement =
+        el("map");
+
 
     if (!mapElement) {
 
@@ -272,7 +327,8 @@ function initMap() {
 
 
     if (
-        typeof L === "undefined"
+        typeof L ===
+        "undefined"
     ) {
 
         console.error(
@@ -284,37 +340,48 @@ function initMap() {
     }
 
 
-    map = L.map("map", {
+    map =
+        L.map(
+            "map",
+            {
 
-        zoomControl: true,
+                zoomControl:
+                    true,
 
-        attributionControl: true
+                attributionControl:
+                    true
 
-    }).setView(
+            }
+        )
+        .setView(
 
-        [
-            currentLat,
-            currentLon
-        ],
+            [
+                currentLat,
+                currentLon
+            ],
 
-        10
+            10
 
-    );
+        );
 
 
     currentBaseLayer =
         baseLayers.street;
 
 
-    currentBaseLayer.addTo(map);
+    currentBaseLayer.addTo(
+        map
+    );
 
 
     userMarker =
         L.marker(
+
             [
                 currentLat,
                 currentLon
             ]
+
         )
         .addTo(map)
         .bindPopup(
@@ -327,15 +394,19 @@ function initMap() {
     addWeatherMetricControl();
 
 
-    setTimeout(function () {
+    setTimeout(
+        function () {
 
-        if (map) {
+            if (map) {
 
-            map.invalidateSize();
+                map.invalidateSize();
 
-        }
+            }
 
-    }, 500);
+        },
+
+        500
+    );
 
 }
 
@@ -372,26 +443,31 @@ function openMap() {
     }
 
 
-    setTimeout(function () {
+    setTimeout(
+        function () {
 
-        if (map) {
+            if (map) {
 
-            map.invalidateSize();
+                map.invalidateSize();
 
-            map.setView(
 
-                [
-                    currentLat,
-                    currentLon
-                ],
+                map.setView(
 
-                11
+                    [
+                        currentLat,
+                        currentLon
+                    ],
 
-            );
+                    11
 
-        }
+                );
 
-    }, 500);
+            }
+
+        },
+
+        500
+    );
 
 
     addHistory(
@@ -466,10 +542,9 @@ function addMapStyleControl() {
                     `;
 
 
-                    L.DomEvent
-                        .disableClickPropagation(
-                            container
-                        );
+                    L.DomEvent.disableClickPropagation(
+                        container
+                    );
 
 
                     return container;
@@ -484,28 +559,32 @@ function addMapStyleControl() {
     );
 
 
-    setTimeout(function () {
+    setTimeout(
+        function () {
 
-        const select =
-            el("mapStyleSelect");
+            const select =
+                el("mapStyleSelect");
 
 
-        if (select) {
+            if (select) {
 
-            select.addEventListener(
-                "change",
-                function () {
+                select.addEventListener(
+                    "change",
+                    function () {
 
-                    setMapStyle(
-                        select.value
-                    );
+                        setMapStyle(
+                            select.value
+                        );
 
-                }
-            );
+                    }
+                );
 
-        }
+            }
 
-    }, 200);
+        },
+
+        200
+    );
 
 }
 
@@ -538,9 +617,13 @@ function setMapStyle(style) {
                 currentBaseLayer
             );
 
-        } catch (error) {
+        }
 
-            console.warn(error);
+        catch (error) {
+
+            console.warn(
+                error
+            );
 
         }
 
@@ -551,7 +634,9 @@ function setMapStyle(style) {
         baseLayers[style];
 
 
-    currentBaseLayer.addTo(map);
+    currentBaseLayer.addTo(
+        map
+    );
 
 
     updateWeatherMapOverlay();
@@ -633,10 +718,9 @@ function addWeatherMetricControl() {
                     `;
 
 
-                    L.DomEvent
-                        .disableClickPropagation(
-                            container
-                        );
+                    L.DomEvent.disableClickPropagation(
+                        container
+                    );
 
 
                     return container;
@@ -651,36 +735,40 @@ function addWeatherMetricControl() {
     );
 
 
-    setTimeout(function () {
+    setTimeout(
+        function () {
 
-        const select =
-            el("weatherMetricSelect");
-
-
-        if (select) {
-
-            select.addEventListener(
-                "change",
-                function () {
-
-                    selectedWeatherMetric =
-                        select.value;
+            const select =
+                el("weatherMetricSelect");
 
 
-                    updateWeatherMapOverlay();
+            if (select) {
 
-                }
-            );
+                select.addEventListener(
+                    "change",
+                    function () {
 
-        }
+                        selectedWeatherMetric =
+                            select.value;
 
-    }, 200);
+
+                        updateWeatherMapOverlay();
+
+                    }
+                );
+
+            }
+
+        },
+
+        200
+    );
 
 }
 
 
 /* =========================================================
-   SET WEATHER METRIC
+   WEATHER METRIC
    ========================================================= */
 
 function setWeatherMetric(metric) {
@@ -724,7 +812,9 @@ function setWeatherMetric(metric) {
     updateWeatherMapOverlay();
 
 
-    focusSection("mapCard");
+    focusSection(
+        "mapCard"
+    );
 
 
     addHistory(
@@ -755,14 +845,15 @@ function updateWeatherMapOverlay() {
 
 
     let label = "";
+
     let value = "";
+
     let unit = "";
 
 
     switch (
         selectedWeatherMetric
     ) {
-
 
         case "temperature":
 
@@ -920,10 +1011,7 @@ function updateWeatherMapOverlay() {
 
             html: `
 
-                <div class="
-                    weather-value-bubble
-                    weather-pulse
-                ">
+                <div class="weather-value-bubble weather-pulse">
 
                     <small>
                         ${label}
@@ -1029,25 +1117,31 @@ function removeWeatherOverlay() {
     ];
 
 
-    layers.forEach(function (layer) {
+    layers.forEach(
+        function (layer) {
 
-        if (layer) {
+            if (layer) {
 
-            try {
+                try {
 
-                map.removeLayer(
-                    layer
-                );
+                    map.removeLayer(
+                        layer
+                    );
 
-            } catch (error) {
+                }
 
-                console.warn(error);
+                catch (error) {
+
+                    console.warn(
+                        error
+                    );
+
+                }
 
             }
 
         }
-
-    });
+    );
 
 
     weatherOverlayCircle =
@@ -1138,7 +1232,7 @@ function drawWindDirection(
 
 
 /* =========================================================
-   WEATHER API
+   LOAD WEATHER
    ========================================================= */
 
 async function loadWeather() {
@@ -1146,6 +1240,7 @@ async function loadWeather() {
     try {
 
         const url =
+
             "https://api.open-meteo.com/v1/forecast" +
 
             `?latitude=${currentLat}` +
@@ -1192,7 +1287,9 @@ async function loadWeather() {
 
 
         const response =
-            await fetch(url);
+            await fetch(
+                url
+            );
 
 
         if (!response.ok) {
@@ -1259,12 +1356,6 @@ async function loadWeather() {
         updateAlerts();
 
         updateEnvironmentMetrics();
-
-
-        console.log(
-            "Weather updated",
-            currentWeather
-        );
 
     }
 
@@ -1396,7 +1487,9 @@ function updateWeatherCards() {
    WEATHER CHART
    ========================================================= */
 
-function updateWeatherChart(hourly) {
+function updateWeatherChart(
+    hourly
+) {
 
     if (!hourly) {
 
@@ -1442,34 +1535,39 @@ function updateWeatherChart(hourly) {
 
     const labels =
         times
-            .slice(0, 24)
-            .map(function (time) {
+            .slice(
+                0,
+                24
+            )
+            .map(
+                function (time) {
 
-                const date =
-                    new Date(time);
+                    const date =
+                        new Date(time);
 
 
-                return date.toLocaleTimeString(
+                    return date.toLocaleTimeString(
+                        [],
+                        {
 
-                    [],
+                            hour:
+                                "2-digit",
 
-                    {
+                            minute:
+                                "2-digit"
 
-                        hour:
-                            "2-digit",
+                        }
+                    );
 
-                        minute:
-                            "2-digit"
-
-                    }
-
-                );
-
-            });
+                }
+            );
 
 
     const temperatures =
-        temps.slice(0, 24);
+        temps.slice(
+            0,
+            24
+        );
 
 
     if (weatherChart) {
@@ -1485,7 +1583,9 @@ function updateWeatherChart(hourly) {
     weatherChart =
         new Chart(
 
-            canvas.getContext("2d"),
+            canvas.getContext(
+                "2d"
+            ),
 
             {
 
@@ -1663,13 +1763,15 @@ function speakWeather() {
         ).toFixed(0)} percent.`;
 
 
-    speak(message);
+    speak(
+        message
+    );
 
 }
 
 
 /* =========================================================
-   ALERT CENTER
+   ALERT
    ========================================================= */
 
 function updateAlerts() {
@@ -1791,7 +1893,8 @@ function updateAlerts() {
 
 
     if (
-        alerts.length === 0
+        alerts.length ===
+        0
     ) {
 
         alertList.innerHTML = `
@@ -1817,19 +1920,21 @@ function updateAlerts() {
     alertList.innerHTML =
 
         alerts
-            .map(function (alert) {
+            .map(
+                function (alert) {
 
-                return `
+                    return `
 
-                    <div class="alert ${alert.type}">
+                        <div class="alert ${alert.type}">
 
-                        ${alert.text}
+                            ${alert.text}
 
-                    </div>
+                        </div>
 
-                `;
+                    `;
 
-            })
+                }
+            )
             .join("");
 
 }
@@ -1841,7 +1946,8 @@ function updateAlerts() {
 
 function activateAlert() {
 
-    alertActive = true;
+    alertActive =
+        true;
 
 
     const alertCard =
@@ -1880,7 +1986,7 @@ function activateAlert() {
 
 
 /* =========================================================
-   EARTHQUAKE DATA
+   EARTHQUAKE
    ========================================================= */
 
 async function loadEarthquakes() {
@@ -1939,8 +2045,13 @@ async function loadEarthquakes() {
             function (a, b) {
 
                 return (
-                    (b.properties.mag || 0) -
+
+                    (b.properties.mag || 0)
+
+                    -
+
                     (a.properties.mag || 0)
+
                 );
 
             }
@@ -1955,7 +2066,8 @@ async function loadEarthquakes() {
 
 
         if (
-            top.length === 0
+            top.length ===
+            0
         ) {
 
             quakeList.innerHTML = `
@@ -1976,93 +2088,101 @@ async function loadEarthquakes() {
         quakeList.innerHTML =
 
             top
-                .map(function (eq) {
+                .map(
+                    function (eq) {
 
-                    const mag =
-                        Number(
-                            eq.properties.mag ||
-                            0
-                        );
-
-
-                    const place =
-                        eq.properties.place ||
-                        "Unknown location";
+                        const mag =
+                            Number(
+                                eq.properties.mag ||
+                                0
+                            );
 
 
-                    const time =
-                        eq.properties.time
-
-                            ?
-
-                            new Date(
-                                eq.properties.time
-                            ).toLocaleString()
-
-                            :
-
-                            "Unknown time";
+                        const place =
+                            eq.properties.place ||
+                            "Unknown location";
 
 
-                    let level =
-                        "";
+                        const time =
+                            eq.properties.time
+
+                                ?
+
+                                new Date(
+                                    eq.properties.time
+                                ).toLocaleString()
+
+                                :
+
+                                "Unknown time";
 
 
-                    if (
-                        mag >= 6
-                    ) {
-
-                        level =
-                            "danger";
-
-                    }
-
-                    else if (
-                        mag >= 4
-                    ) {
-
-                        level =
-                            "warning";
-
-                    }
+                        let level =
+                            "";
 
 
-                    return `
+                        if (
+                            mag >=
+                            6
+                        ) {
 
-                        <div class="quake-item">
+                            level =
+                                "danger";
 
-                            <div class="
-                                quake-mag
-                                ${level}
-                            ">
+                        }
 
-                                M ${mag.toFixed(1)}
+                        else if (
+                            mag >=
+                            4
+                        ) {
 
-                            </div>
+                            level =
+                                "warning";
+
+                        }
 
 
-                            <div class="quake-info">
+                        return `
 
-                                <div class="quake-place">
+                            <div class="quake-item">
 
-                                    ${escapeHTML(place)}
+                                <div class="
+                                    quake-mag
+                                    ${level}
+                                ">
+
+                                    M ${mag.toFixed(1)}
 
                                 </div>
 
 
-                                <div class="quake-time">
+                                <div class="quake-info">
 
-                                    ${escapeHTML(time)}
+                                    <div class="quake-place">
+
+                                        ${escapeHTML(
+                                            place
+                                        )}
+
+                                    </div>
+
+
+                                    <div class="quake-time">
+
+                                        ${escapeHTML(
+                                            time
+                                        )}
+
+                                    </div>
 
                                 </div>
 
                             </div>
 
-                        </div>
+                        `;
 
-                    `;
-
-                })
+                    }
+                )
                 .join("");
 
     }
@@ -2221,7 +2341,7 @@ function getUserLocation() {
 
 
 /* =========================================================
-   GET GPS BUTTON
+   GPS BUTTON
    ========================================================= */
 
 function getGPS() {
@@ -2318,6 +2438,7 @@ function getGPS() {
 
         },
 
+
         {
 
             enableHighAccuracy:
@@ -2337,7 +2458,7 @@ function getGPS() {
 
 
 /* =========================================================
-   UPDATE GPS MARKER
+   GPS MARKER
    ========================================================= */
 
 function updateGPSMarker(
@@ -2449,7 +2570,9 @@ function updateGPSMarker(
    GPS STATUS
    ========================================================= */
 
-function updateGPSStatus(status) {
+function updateGPSStatus(
+    status
+) {
 
     const gpsState =
         el("gpsState");
@@ -2469,7 +2592,7 @@ function updateGPSStatus(status) {
 
 
 /* =========================================================
-   RADIATION STATUS
+   RADIATION
    ========================================================= */
 
 function updateRadiation() {
@@ -2484,11 +2607,6 @@ function updateRadiation() {
 
     }
 
-
-    /*
-       Browser cannot measure radiation
-       without a connected radiation sensor.
-    */
 
     radiation.textContent =
         "N/A";
@@ -2512,12 +2630,6 @@ function updateAirQuality() {
 
     }
 
-
-    /*
-       This dashboard does not directly
-       measure AQI without an air-quality
-       data source or sensor.
-    */
 
     airQuality.textContent =
         "N/A";
@@ -2609,6 +2721,7 @@ function initVoice() {
 
     recognition.lang =
         voiceLanguage
+
             ?
 
             voiceLanguage.value
@@ -2763,10 +2876,12 @@ function initVoice() {
 
 
             if (
+
                 voiceStatus &&
 
                 voiceStatus.textContent ===
                 "🎙️ Listening..."
+
             ) {
 
                 voiceStatus.textContent =
@@ -2806,7 +2921,9 @@ function toggleListening() {
 
         catch (error) {
 
-            console.warn(error);
+            console.warn(
+                error
+            );
 
         }
 
@@ -2823,6 +2940,7 @@ function toggleListening() {
 
         recognition.lang =
             language
+
                 ?
 
                 language.value
@@ -2849,7 +2967,7 @@ function toggleListening() {
 
 
 /* =========================================================
-   VOICE COMMAND ROUTER
+   VOICE COMMAND PROCESSOR
    ========================================================= */
 
 function processVoiceCommand(
@@ -2874,7 +2992,8 @@ function processVoiceCommand(
 
     if (
 
-        text === "stop"
+        text ===
+        "stop"
 
         ||
 
@@ -3142,6 +3261,49 @@ function processVoiceCommand(
 
 
     /* =====================================================
+       WEATHER
+       ===================================================== */
+
+    if (
+
+        text.includes(
+            "weather"
+        )
+
+        ||
+
+        text.includes(
+            "मौसम"
+        )
+
+        ||
+
+        text.includes(
+            "मौसम बताओ"
+        )
+
+        ||
+
+        text.includes(
+            "weather batao"
+        )
+
+    ) {
+
+        focusSection(
+            "weatherCard"
+        );
+
+
+        speakWeather();
+
+
+        return;
+
+    }
+
+
+    /* =====================================================
        TEMPERATURE
        ===================================================== */
 
@@ -3349,49 +3511,6 @@ function processVoiceCommand(
 
 
     /* =====================================================
-       WEATHER
-       ===================================================== */
-
-    if (
-
-        text.includes(
-            "weather"
-        )
-
-        ||
-
-        text.includes(
-            "मौसम"
-        )
-
-        ||
-
-        text.includes(
-            "मौसम बताओ"
-        )
-
-        ||
-
-        text.includes(
-            "weather batao"
-        )
-
-    ) {
-
-        focusSection(
-            "weatherCard"
-        );
-
-
-        speakWeather();
-
-
-        return;
-
-    }
-
-
-    /* =====================================================
        MAP
        ===================================================== */
 
@@ -3433,9 +3552,8 @@ function processVoiceCommand(
 
         ||
 
-        text.includes(
-            "map"
-        )
+        text ===
+        "map"
 
     ) {
 
@@ -3466,12 +3584,6 @@ function processVoiceCommand(
 
         text.includes(
             "भूकंप"
-        )
-
-        ||
-
-        text.includes(
-            "earthquake खोलो"
         )
 
     ) {
@@ -3575,7 +3687,9 @@ function processVoiceCommand(
 
     ) {
 
-        openApp("qr");
+        openApp(
+            "qr"
+        );
 
         return;
 
@@ -3612,7 +3726,9 @@ function processVoiceCommand(
 
     ) {
 
-        openApp("camera");
+        openApp(
+            "camera"
+        );
 
         return;
 
@@ -3655,7 +3771,9 @@ function processVoiceCommand(
 
     ) {
 
-        openApp("sos");
+        openApp(
+            "sos"
+        );
 
         return;
 
@@ -3698,7 +3816,9 @@ function processVoiceCommand(
 
     ) {
 
-        openApp("location");
+        openApp(
+            "location"
+        );
 
         return;
 
@@ -3713,6 +3833,18 @@ function processVoiceCommand(
 
         text.includes(
             "compass"
+        )
+
+        ||
+
+        text.includes(
+            "open compass"
+        )
+
+        ||
+
+        text.includes(
+            "compass kholo"
         )
 
         ||
@@ -3733,6 +3865,12 @@ function processVoiceCommand(
             "कंपास खोलो"
         )
 
+        ||
+
+        text.includes(
+            "कम्पास खोलो"
+        )
+
     ) {
 
         openCompass();
@@ -3743,7 +3881,7 @@ function processVoiceCommand(
 
 
     /* =====================================================
-       AI ASSISTANT
+       AI VOICE ASSISTANT
        ===================================================== */
 
     if (
@@ -3784,7 +3922,9 @@ function processVoiceCommand(
 
     ) {
 
-        openApp("ai");
+        openApp(
+            "ai"
+        );
 
         return;
 
@@ -3977,6 +4117,7 @@ function processVoiceCommand(
 
         const gps =
             gpsElement
+
                 ?
 
                 gpsElement.textContent
@@ -3992,8 +4133,10 @@ function processVoiceCommand(
 
             `Siren is ${
                 sirenRunning
-                    ? "running"
-                    : "stopped"
+                    ?
+                    "running"
+                    :
+                    "stopped"
             }.`
 
         );
@@ -4056,7 +4199,7 @@ function processVoiceCommand(
 
 
     /* =====================================================
-       UNKNOWN
+       UNKNOWN COMMAND
        ===================================================== */
 
     speak(
@@ -4082,10 +4225,16 @@ function processVoiceCommand(
    TEXT TO SPEECH
    ========================================================= */
 
-function speak(text) {
+function speak(
+    text
+) {
 
     if (
-        !("speechSynthesis" in window)
+        !(
+            "speechSynthesis"
+            in
+            window
+        )
     ) {
 
         return;
@@ -4108,6 +4257,7 @@ function speak(text) {
 
     const language =
         voiceLanguage
+
             ?
 
             voiceLanguage.value
@@ -4141,7 +4291,7 @@ function speak(text) {
 
 
 /* =========================================================
-   SIREN
+   START SIREN
    ========================================================= */
 
 function startSiren() {
@@ -4246,8 +4396,10 @@ function startSiren() {
 
                     const frequency =
                         high
-                            ? 900
-                            : 500;
+                            ?
+                            900
+                            :
+                            500;
 
 
                     const now =
@@ -4326,9 +4478,7 @@ function startSiren() {
 
 function stopSiren() {
 
-    if (
-        sirenTimer
-    ) {
+    if (sirenTimer) {
 
         clearInterval(
             sirenTimer
@@ -4350,7 +4500,9 @@ function stopSiren() {
 
         catch (error) {
 
-            console.warn(error);
+            console.warn(
+                error
+            );
 
         }
 
@@ -4373,7 +4525,9 @@ function stopSiren() {
 
         catch (error) {
 
-            console.warn(error);
+            console.warn(
+                error
+            );
 
         }
 
@@ -4428,7 +4582,7 @@ function toggleSiren() {
 
 
 /* =========================================================
-   UPDATE SIREN UI
+   SIREN UI
    ========================================================= */
 
 function updateSirenUI(
@@ -4457,8 +4611,14 @@ function updateSirenUI(
 
             text.textContent =
                 running
-                    ? "STOP SIREN"
-                    : "SIREN";
+
+                    ?
+
+                    "STOP SIREN"
+
+                    :
+
+                    "SIREN";
 
         }
 
@@ -4473,8 +4633,14 @@ function updateSirenUI(
 
         sirenState.textContent =
             running
-                ? "ACTIVE"
-                : "STANDBY";
+
+                ?
+
+                "ACTIVE"
+
+                :
+
+                "STANDBY";
 
     }
 
@@ -4516,7 +4682,9 @@ function stopEverything() {
 
         catch (error) {
 
-            console.warn(error);
+            console.warn(
+                error
+            );
 
         }
 
@@ -4549,10 +4717,12 @@ function stopEverything() {
 
 
 /* =========================================================
-   OPEN EXTERNAL APP
+   OPEN APP
    ========================================================= */
 
-function openApp(app) {
+function openApp(
+    app
+) {
 
     const url =
         APP_LINKS[app];
@@ -4577,22 +4747,54 @@ function openApp(app) {
         )
     ) {
 
-        const title =
-            app === "sos"
-                ? "SOS SIREN LINK"
-                : "AI ASSISTANT LINK";
+        let title =
+            "APP LINK";
 
 
-        const message =
-            app === "sos"
+        let message =
+            "Application URL अभी configure नहीं किया गया है.";
 
-                ?
 
-                "SOS Siren URL अभी configure नहीं किया गया है."
+        if (
+            app ===
+            "sos"
+        ) {
 
-                :
+            title =
+                "SOS SIREN LINK";
 
+            message =
+                "SOS Siren URL अभी configure नहीं किया गया है.";
+
+        }
+
+
+        else if (
+            app ===
+            "ai"
+        ) {
+
+            title =
+                "AI ASSISTANT LINK";
+
+            message =
                 "AI Voice Assistant URL अभी configure नहीं किया गया है.";
+
+        }
+
+
+        else if (
+            app ===
+            "compass"
+        ) {
+
+            title =
+                "COMPASS LINK";
+
+            message =
+                "Compass URL अभी configure नहीं किया गया है.";
+
+        }
 
 
         showModal(
@@ -4614,17 +4816,17 @@ function openApp(app) {
 
     const popup =
         window.open(
+
             url,
+
             "_blank",
+
             "noopener,noreferrer"
+
         );
 
 
     if (!popup) {
-
-        /*
-           Popup blocked fallback.
-        */
 
         window.location.href =
             url;
@@ -4648,6 +4850,9 @@ function openApp(app) {
         location:
             "Location Tracker is opening.",
 
+        compass:
+            "Compass is opening.",
+
         ai:
             "AI Voice Assistant is opening."
 
@@ -4663,7 +4868,96 @@ function openApp(app) {
 
 
 /* =========================================================
-   OPEN SOCIAL
+   CUSTOM COMPASS
+   ========================================================= */
+
+function openCompass() {
+
+    /*
+       IMPORTANT:
+       Compass now uses your own APP_LINKS.compass URL.
+    */
+
+    const url =
+        APP_LINKS.compass;
+
+
+    if (
+        !url ||
+        url.includes(
+            "YOUR_COMPASS_URL"
+        )
+    ) {
+
+        showModal(
+
+            "COMPASS LINK",
+
+            `
+
+                Compass URL अभी configure नहीं किया गया है.
+
+                <br><br>
+
+                script.js में
+
+                <br>
+
+                <b>
+                    APP_LINKS.compass
+                </b>
+
+                <br><br>
+
+                में अपना Compass URL डालें.
+
+            `
+
+        );
+
+
+        return;
+
+    }
+
+
+    addHistory(
+        "COMPASS",
+        "Custom Compass opened"
+    );
+
+
+    const popup =
+        window.open(
+
+            url,
+
+            "_blank",
+
+            "noopener,noreferrer"
+
+        );
+
+
+    if (!popup) {
+
+        window.location.href =
+            url;
+
+        return;
+
+    }
+
+
+    speak(
+        "Your Compass is opening."
+    );
+
+}
+
+
+/* =========================================================
+   SOCIAL
    ========================================================= */
 
 function openSocial(
@@ -4689,9 +4983,13 @@ function openSocial(
 
     const popup =
         window.open(
+
             url,
+
             "_blank",
+
             "noopener,noreferrer"
+
         );
 
 
@@ -4728,312 +5026,100 @@ function openSocial(
 
 
 /* =========================================================
-   COMPASS
-   ========================================================= */
-
-function openCompass() {
-
-    const url =
-        "https://www.google.com/search?q=compass";
-
-
-    addHistory(
-        "COMPASS",
-        "Compass opened"
-    );
-
-
-    const popup =
-        window.open(
-            url,
-            "_blank",
-            "noopener,noreferrer"
-        );
-
-
-    if (!popup) {
-
-        window.location.href =
-            url;
-
-        return;
-
-    }
-
-
-    speak(
-        "Compass is opening."
-    );
-
-}
-
-
-/* =========================================================
-   SETUP QUICK BUTTONS
+   SETUP BUTTONS
    ========================================================= */
 
 function setupButtons() {
 
-    /*
-       HTML buttons normally have
-       onclick handlers.
+    const buttons = [
 
-       This extra system safely connects
-       common IDs if they exist.
-    */
-
-
-    const mapBtn =
-        el("mapBtn");
-
-
-    if (
-        mapBtn &&
-        !mapBtn.dataset.bound
-    ) {
-
-        mapBtn.addEventListener(
-            "click",
+        [
+            "mapBtn",
             openMap
-        );
+        ],
 
-        mapBtn.dataset.bound =
-            "true";
-
-    }
-
-
-    const gpsBtn =
-        el("gpsBtn");
-
-
-    if (
-        gpsBtn &&
-        !gpsBtn.dataset.bound
-    ) {
-
-        gpsBtn.addEventListener(
-            "click",
+        [
+            "gpsBtn",
             getGPS
-        );
+        ],
 
-        gpsBtn.dataset.bound =
-            "true";
-
-    }
-
-
-    const alertBtn =
-        el("alertBtn");
-
-
-    if (
-        alertBtn &&
-        !alertBtn.dataset.bound
-    ) {
-
-        alertBtn.addEventListener(
-            "click",
+        [
+            "alertBtn",
             activateAlert
-        );
+        ],
 
-        alertBtn.dataset.bound =
-            "true";
-
-    }
-
-
-    const sirenBtn =
-        el("sirenBtn");
-
-
-    if (
-        sirenBtn &&
-        !sirenBtn.dataset.bound
-    ) {
-
-        sirenBtn.addEventListener(
-            "click",
+        [
+            "sirenBtn",
             toggleSiren
-        );
+        ],
 
-        sirenBtn.dataset.bound =
-            "true";
-
-    }
-
-
-    const stopBtn =
-        el("stopBtn");
-
-
-    if (
-        stopBtn &&
-        !stopBtn.dataset.bound
-    ) {
-
-        stopBtn.addEventListener(
-            "click",
+        [
+            "stopBtn",
             stopEverything
-        );
+        ],
 
-        stopBtn.dataset.bound =
-            "true";
-
-    }
-
-
-    const qrBtn =
-        el("qrBtn");
-
-
-    if (
-        qrBtn &&
-        !qrBtn.dataset.bound
-    ) {
-
-        qrBtn.addEventListener(
-            "click",
+        [
+            "qrBtn",
             function () {
 
-                openApp("qr");
+                openApp(
+                    "qr"
+                );
 
             }
-        );
+        ],
 
-        qrBtn.dataset.bound =
-            "true";
-
-    }
-
-
-    const cameraBtn =
-        el("cameraBtn");
-
-
-    if (
-        cameraBtn &&
-        !cameraBtn.dataset.bound
-    ) {
-
-        cameraBtn.addEventListener(
-            "click",
+        [
+            "cameraBtn",
             function () {
 
-                openApp("camera");
+                openApp(
+                    "camera"
+                );
 
             }
-        );
+        ],
 
-        cameraBtn.dataset.bound =
-            "true";
-
-    }
-
-
-    const sosBtn =
-        el("sosBtn");
-
-
-    if (
-        sosBtn &&
-        !sosBtn.dataset.bound
-    ) {
-
-        sosBtn.addEventListener(
-            "click",
+        [
+            "sosBtn",
             function () {
 
-                openApp("sos");
+                openApp(
+                    "sos"
+                );
 
             }
-        );
+        ],
 
-        sosBtn.dataset.bound =
-            "true";
-
-    }
-
-
-    const locationBtn =
-        el("locationBtn");
-
-
-    if (
-        locationBtn &&
-        !locationBtn.dataset.bound
-    ) {
-
-        locationBtn.addEventListener(
-            "click",
+        [
+            "locationBtn",
             function () {
 
-                openApp("location");
+                openApp(
+                    "location"
+                );
 
             }
-        );
+        ],
 
-        locationBtn.dataset.bound =
-            "true";
-
-    }
-
-
-    const compassBtn =
-        el("compassBtn");
-
-
-    if (
-        compassBtn &&
-        !compassBtn.dataset.bound
-    ) {
-
-        compassBtn.addEventListener(
-            "click",
+        [
+            "compassBtn",
             openCompass
-        );
+        ],
 
-        compassBtn.dataset.bound =
-            "true";
-
-    }
-
-
-    const aiBtn =
-        el("aiBtn");
-
-
-    if (
-        aiBtn &&
-        !aiBtn.dataset.bound
-    ) {
-
-        aiBtn.addEventListener(
-            "click",
+        [
+            "aiBtn",
             function () {
 
-                openApp("ai");
+                openApp(
+                    "ai"
+                );
 
             }
-        );
+        ],
 
-        aiBtn.dataset.bound =
-            "true";
-
-    }
-
-
-    const instagramBtn =
-        el("instagramBtn");
-
-
-    if (
-        instagramBtn &&
-        !instagramBtn.dataset.bound
-    ) {
-
-        instagramBtn.addEventListener(
-            "click",
+        [
+            "instagramBtn",
             function () {
 
                 openSocial(
@@ -5041,25 +5127,10 @@ function setupButtons() {
                 );
 
             }
-        );
+        ],
 
-        instagramBtn.dataset.bound =
-            "true";
-
-    }
-
-
-    const facebookBtn =
-        el("facebookBtn");
-
-
-    if (
-        facebookBtn &&
-        !facebookBtn.dataset.bound
-    ) {
-
-        facebookBtn.addEventListener(
-            "click",
+        [
+            "facebookBtn",
             function () {
 
                 openSocial(
@@ -5067,25 +5138,10 @@ function setupButtons() {
                 );
 
             }
-        );
+        ],
 
-        facebookBtn.dataset.bound =
-            "true";
-
-    }
-
-
-    const whatsappBtn =
-        el("whatsappBtn");
-
-
-    if (
-        whatsappBtn &&
-        !whatsappBtn.dataset.bound
-    ) {
-
-        whatsappBtn.addEventListener(
-            "click",
+        [
+            "whatsappBtn",
             function () {
 
                 openSocial(
@@ -5093,12 +5149,36 @@ function setupButtons() {
                 );
 
             }
-        );
+        ]
 
-        whatsappBtn.dataset.bound =
-            "true";
+    ];
 
-    }
+
+    buttons.forEach(
+        function (item) {
+
+            const button =
+                el(item[0]);
+
+
+            if (
+                button &&
+                !button.dataset.bound
+            ) {
+
+                button.addEventListener(
+                    "click",
+                    item[1]
+                );
+
+
+                button.dataset.bound =
+                    "true";
+
+            }
+
+        }
+    );
 
 }
 
@@ -5107,7 +5187,9 @@ function setupButtons() {
    FOCUS SECTION
    ========================================================= */
 
-function focusSection(id) {
+function focusSection(
+    id
+) {
 
     const section =
         el(id);
@@ -5150,14 +5232,13 @@ function focusSection(id) {
         },
 
         500
-
     );
 
 }
 
 
 /* =========================================================
-   COMMAND HISTORY
+   HISTORY
    ========================================================= */
 
 function addHistory(
@@ -5176,9 +5257,11 @@ function addHistory(
 
         history =
             JSON.parse(
+
                 localStorage.getItem(
                     historyKey
                 )
+
             ) || [];
 
     }
@@ -5264,9 +5347,11 @@ function renderHistory() {
 
         history =
             JSON.parse(
+
                 localStorage.getItem(
                     "CBRND_COMMAND_HISTORY"
                 )
+
             ) || [];
 
     }
@@ -5279,7 +5364,8 @@ function renderHistory() {
 
 
     if (
-        history.length === 0
+        history.length ===
+        0
     ) {
 
         historyContainer.innerHTML = `
@@ -5300,44 +5386,49 @@ function renderHistory() {
     historyContainer.innerHTML =
 
         history
-            .slice(0, 20)
-            .map(function (item) {
+            .slice(
+                0,
+                20
+            )
+            .map(
+                function (item) {
 
-                return `
+                    return `
 
-                    <div class="history-item">
+                        <div class="history-item">
 
-                        <div class="history-type">
+                            <div class="history-type">
 
-                            ${escapeHTML(
-                                item.type
-                            )}
+                                ${escapeHTML(
+                                    item.type
+                                )}
+
+                            </div>
+
+
+                            <div class="history-text">
+
+                                ${escapeHTML(
+                                    item.text
+                                )}
+
+                            </div>
+
+
+                            <div class="history-time">
+
+                                ${escapeHTML(
+                                    item.time
+                                )}
+
+                            </div>
 
                         </div>
 
+                    `;
 
-                        <div class="history-text">
-
-                            ${escapeHTML(
-                                item.text
-                            )}
-
-                        </div>
-
-
-                        <div class="history-time">
-
-                            ${escapeHTML(
-                                item.time
-                            )}
-
-                        </div>
-
-                    </div>
-
-                `;
-
-            })
+                }
+            )
             .join("");
 
 }
@@ -5359,7 +5450,9 @@ function clearHistory() {
 
     catch (error) {
 
-        console.warn(error);
+        console.warn(
+            error
+        );
 
     }
 
@@ -5415,6 +5508,12 @@ function showModal(
 
 
     if (modalText) {
+
+        /*
+           innerHTML intentionally used
+           because modal messages contain
+           line breaks / HTML.
+        */
 
         modalText.innerHTML =
             text;
@@ -5496,10 +5595,6 @@ document.addEventListener(
     "keydown",
     function (event) {
 
-        /*
-           SPACE = Voice
-        */
-
         if (
 
             event.code ===
@@ -5524,15 +5619,10 @@ document.addEventListener(
 
             event.preventDefault();
 
-
             toggleListening();
 
         }
 
-
-        /*
-           ESC = Stop
-        */
 
         if (
             event.key ===
@@ -5560,9 +5650,12 @@ document.addEventListener(
 
 
         if (
+
             modal &&
+
             event.target ===
             modal
+
         ) {
 
             closeModal();
@@ -5580,7 +5673,8 @@ document.addEventListener(
 function startAutoRefresh() {
 
     /*
-       Weather every 5 minutes
+       Weather:
+       every 5 minutes
     */
 
     setInterval(
@@ -5591,12 +5685,12 @@ function startAutoRefresh() {
         },
 
         5 * 60 * 1000
-
     );
 
 
     /*
-       Earthquake every 2 minutes
+       Earthquakes:
+       every 2 minutes
     */
 
     setInterval(
@@ -5607,7 +5701,6 @@ function startAutoRefresh() {
         },
 
         2 * 60 * 1000
-
     );
 
 }
@@ -5745,11 +5838,14 @@ function openReport() {
 
 
     showModal(
+
         "ENVIRONMENT REPORT",
+
         text.replace(
             /\n/g,
             "<br>"
         )
+
     );
 
 
@@ -5803,16 +5899,20 @@ function downloadReport() {
             report.cloud
 
         ]
-        .map(function (value) {
 
-            return `"${String(
-                value ?? ""
-            ).replace(
-                /"/g,
-                '""'
-            )}"`;
+        .map(
+            function (value) {
 
-        })
+                return `"${String(
+                    value ?? ""
+                ).replace(
+                    /"/g,
+                    '""'
+                )}"`;
+
+            }
+        )
+
         .join(",");
 
 
@@ -5887,107 +5987,72 @@ function downloadReport() {
 window.openMap =
     openMap;
 
-
 window.getGPS =
     getGPS;
-
 
 window.startSiren =
     startSiren;
 
-
 window.stopSiren =
     stopSiren;
-
 
 window.toggleSiren =
     toggleSiren;
 
-
 window.activateAlert =
     activateAlert;
-
 
 window.stopEverything =
     stopEverything;
 
-
 window.openApp =
     openApp;
-
-
-window.openSocial =
-    openSocial;
-
 
 window.openCompass =
     openCompass;
 
+window.openSocial =
+    openSocial;
 
 window.setWeatherMetric =
     setWeatherMetric;
 
-
 window.loadWeather =
     loadWeather;
-
 
 window.loadEarthquakes =
     loadEarthquakes;
 
-
 window.toggleListening =
     toggleListening;
-
 
 window.processVoiceCommand =
     processVoiceCommand;
 
-
 window.speak =
     speak;
-
 
 window.speakWeather =
     speakWeather;
 
-
 window.clearHistory =
     clearHistory;
-
 
 window.showModal =
     showModal;
 
-
 window.closeModal =
     closeModal;
 
-
 window.openReport =
     openReport;
-
 
 window.downloadReport =
     downloadReport;
 
 
 /* =========================================================
-   INITIAL HISTORY LOAD
-   ========================================================= */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
-
-        renderHistory();
-
-    }
-);
-
-
-/* =========================================================
-   FINAL CONSOLE
+   FINAL STATUS
    ========================================================= */
 
 console.log(
@@ -5995,12 +6060,16 @@ console.log(
     "background:#06131f;color:#62eaff;font-size:16px;font-weight:bold;padding:10px;"
 );
 
+console.log(
+    "Voice • GPS • Map • Weather • Siren • Alert • Apps • Compass • Social"
+);
 
 console.log(
-    "Voice • GPS • Map • Weather • Siren • Alert • Apps • Social"
+    "Custom Compass Link:",
+    APP_LINKS.compass
 );
 
 
 /* =========================================================
-   END OF SCRIPT
+   END
    ========================================================= */
