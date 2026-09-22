@@ -1366,8 +1366,9 @@ header{
 
 <script>
 /* =========================================================
-   CBRND FINAL VOICE FIX
-   ONE MICROPHONE HANDLER ONLY
+   CBRND FINAL VOICE BRIDGE
+   Keeps ALL original script.js functions working.
+   Only adds Assistant Name, Mobile Number and real Compass.
    ========================================================= */
 
 const CBRND_ASSISTANT_NAME = "My Voice Master";
@@ -1399,12 +1400,6 @@ const CBRND_COMPASS_LINK = "https://somchandtrust-boo.github.io/My-Compass/";
         }
     }
 
-    function history(text){
-        if(typeof window.addHistory === "function"){
-            try{ window.addHistory("VOICE", text); }catch(e){}
-        }
-    }
-
     function clean(text){
         return String(text || "")
             .toLowerCase()
@@ -1415,34 +1410,42 @@ const CBRND_COMPASS_LINK = "https://somchandtrust-boo.github.io/My-Compass/";
 
     function openRealCompass(){
         const w = window.open(CBRND_COMPASS_LINK,"_blank","noopener,noreferrer");
-        if(!w) window.location.href = CBRND_COMPASS_LINK;
-        else speakSafe("Real compass is opening.");
+        if(!w){
+            window.location.href = CBRND_COMPASS_LINK;
+        }else{
+            speakSafe("Real compass is opening.");
+        }
     }
 
-    function runCommand(command){
+    /* Only NEW commands are handled here. */
+    function handleExtraCommand(command){
         const c = clean(command);
-        if(!c) return;
-        history(c);
 
-        /* ASSISTANT NAME */
         if(
-            c.includes("your name") || c.includes("what is your name") ||
-            c.includes("who are you") || c.includes("aapka naam") ||
-            c.includes("tumhara naam") || c.includes("आपका नाम") ||
+            c.includes("your name") ||
+            c.includes("what is your name") ||
+            c.includes("who are you") ||
+            c.includes("aapka naam") ||
+            c.includes("tumhara naam") ||
+            c.includes("आपका नाम") ||
             c.includes("तुम्हारा नाम")
         ){
             speakSafe("My name is " + CBRND_ASSISTANT_NAME);
             status("Assistant name: " + CBRND_ASSISTANT_NAME);
-            return;
+            return true;
         }
 
-        /* MOBILE NUMBER */
         if(
-            c.includes("mobile number") || c.includes("phone number") ||
-            c.includes("my number") || c.includes("my mobile") ||
-            c.includes("mera number") || c.includes("mera mobile") ||
-            c.includes("mera phone") || c.includes("मेरा नंबर") ||
-            c.includes("मेरा मोबाइल") || c.includes("मोबाइल नंबर")
+            c.includes("mobile number") ||
+            c.includes("phone number") ||
+            c.includes("my number") ||
+            c.includes("my mobile") ||
+            c.includes("mera number") ||
+            c.includes("mera mobile") ||
+            c.includes("mera phone") ||
+            c.includes("मेरा नंबर") ||
+            c.includes("मेरा मोबाइल") ||
+            c.includes("मोबाइल नंबर")
         ){
             if(CBRND_USER_MOBILE === "YOUR_MOBILE_NUMBER"){
                 speakSafe("Mobile number is not set yet.");
@@ -1451,74 +1454,24 @@ const CBRND_COMPASS_LINK = "https://somchandtrust-boo.github.io/My-Compass/";
                 speakSafe("Your mobile number is " + CBRND_USER_MOBILE.split("").join(" "));
                 status("Mobile number requested");
             }
-            return;
+            return true;
         }
 
-        /* COMPASS */
-        if(c.includes("compass") || c.includes("कंपास") || c.includes("कम्पास")){
+        if(
+            c === "compass" ||
+            c.includes("open compass") ||
+            c.includes("show compass") ||
+            c.includes("compass kholo") ||
+            c.includes("compass khol") ||
+            c.includes("कंपास") ||
+            c.includes("कम्पास")
+        ){
             status("Opening real compass...");
             openRealCompass();
-            return;
+            return true;
         }
 
-        /* REAL COMMANDS */
-        if(c.includes("map") || c.includes("नक्शा") || c.includes("मैप")){
-            if(typeof window.openMap === "function") window.openMap();
-            else window.open("https://www.google.com/maps","_blank");
-            return;
-        }
-
-        if(c.includes("gps") || c.includes("location") || c.includes("लोकेशन") || c.includes("जगह")){
-            if(typeof window.getGPS === "function") window.getGPS();
-            else if(typeof window.getUserLocation === "function") window.getUserLocation();
-            return;
-        }
-
-        if(c.includes("alert") || c.includes("अलर्ट") || c.includes("चेतावनी")){
-            if(typeof window.activateAlert === "function") window.activateAlert();
-            return;
-        }
-
-        if(c.includes("siren") || c.includes("सायरन")){
-            if(typeof window.toggleSiren === "function") window.toggleSiren();
-            return;
-        }
-
-        if(c.includes("report") || c.includes("रिपोर्ट")){
-            if(typeof window.openReport === "function") window.openReport();
-            return;
-        }
-
-        if(c.includes("stop") || c.includes("बंद करो") || c.includes("रोक दो")){
-            if(typeof window.stopEverything === "function") window.stopEverything();
-            return;
-        }
-
-        function app(name){
-            if(typeof window.openApp === "function") window.openApp(name);
-        }
-
-        if(c.includes("qr") || c.includes("क्यूआर")){ app("qr"); return; }
-        if(c.includes("smart camera") || c.includes("camera") || c.includes("कैमरा")){ app("camera"); return; }
-        if(c.includes("sos")){ app("sos"); return; }
-        if(c.includes("location tracker") || c.includes("ट्रैकर")){ app("location"); return; }
-        if(c.includes("ai voice") || c.includes("voice assistant") || c.includes("वॉइस असिस्टेंट")){ app("ai"); return; }
-
-        if(c.includes("instagram") || c.includes("इंस्टाग्राम")){
-            if(typeof window.openSocial === "function") window.openSocial("instagram");
-            return;
-        }
-        if(c.includes("facebook") || c.includes("फेसबुक")){
-            if(typeof window.openSocial === "function") window.openSocial("facebook");
-            return;
-        }
-        if(c.includes("whatsapp") || c.includes("व्हाट्सऐप") || c.includes("व्हाट्सएप")){
-            if(typeof window.openSocial === "function") window.openSocial("whatsapp");
-            return;
-        }
-
-        status("Command not recognized: " + command);
-        speakSafe("Command not recognized.");
+        return false;
     }
 
     function installVoice(){
@@ -1531,7 +1484,7 @@ const CBRND_COMPASS_LINK = "https://somchandtrust-boo.github.io/My-Compass/";
             return;
         }
 
-        /* Clone mic to remove every old click listener from script.js. */
+        /* Remove the original microphone click listener. */
         const fresh = mic.cloneNode(true);
         fresh.removeAttribute("onclick");
         mic.replaceWith(fresh);
@@ -1553,7 +1506,18 @@ const CBRND_COMPASS_LINK = "https://somchandtrust-boo.github.io/My-Compass/";
         recognition.onresult = function(event){
             const command = event.results[0][0].transcript.trim();
             status("Command: " + command);
-            runCommand(command);
+
+            /* Name/mobile/real compass are the only custom commands. */
+            if(handleExtraCommand(command)) return;
+
+            /* EVERYTHING ELSE goes to the original command engine. */
+            if(typeof window.processVoiceCommand === "function"){
+                window.processVoiceCommand(command);
+            }else if(typeof window.processCommand === "function"){
+                window.processCommand(command);
+            }else{
+                status("Voice command engine not found.");
+            }
         };
 
         recognition.onerror = function(event){
@@ -1576,10 +1540,12 @@ const CBRND_COMPASS_LINK = "https://somchandtrust-boo.github.io/My-Compass/";
 
         mic.addEventListener("click", function(){
             if(!recognition) return;
+
             if(listening){
                 recognition.stop();
                 return;
             }
+
             try{
                 recognition.lang = "hi-IN";
                 recognition.start();
@@ -1594,18 +1560,38 @@ const CBRND_COMPASS_LINK = "https://somchandtrust-boo.github.io/My-Compass/";
     function installCompass(){
         const button = document.getElementById("compassBtn");
         if(!button) return;
+
+        /* Remove old Google-search compass listener. */
         const fresh = button.cloneNode(true);
         fresh.removeAttribute("onclick");
         button.replaceWith(fresh);
         fresh.addEventListener("click", openRealCompass);
     }
 
+    function protectStopEverything(){
+        if(typeof window.stopEverything !== "function") return;
+
+        const originalStop = window.stopEverything;
+        window.stopEverything = function(){
+            if(recognition && listening){
+                try{ recognition.stop(); }catch(e){}
+            }
+            listening = false;
+            if(mic){
+                mic.classList.remove("listening");
+                mic.textContent = "🎤";
+            }
+            originalStop();
+        };
+    }
+
     function start(){
-        /* Wait until script.js has finished its own setup, then replace only mic/compass handlers. */
+        /* Wait until original script.js finishes all its setup. */
         setTimeout(function(){
             installVoice();
             installCompass();
-        }, 700);
+            protectStopEverything();
+        },700);
     }
 
     if(document.readyState === "loading"){
