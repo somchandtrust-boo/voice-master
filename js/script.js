@@ -24,7 +24,7 @@ const ASSISTANT_NAME = "My Voice Master";
    const USER_MOBILE = "9876543210";
 */
 
-const USER_MOBILE = "YOUR_MOBILE_NUMBER";
+const USER_MOBILE = "9624462339";
 
 
 /* =========================================================
