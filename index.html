@@ -1365,1672 +1365,195 @@ header{
 <script src="script.js"></script>
 
 <script>
+/* =========================================================
+   CBRND FINAL FIX
+   REAL COMPASS + MOBILE NUMBER + HINDI/ENGLISH VOICE
+   ========================================================= */
 
-/* =========================================
-   GLOBAL VARIABLES
-========================================= */
+const CBRND_ASSISTANT_NAME = "My Voice Master";
+const CBRND_USER_MOBILE = "YOUR_MOBILE_NUMBER";
+const CBRND_COMPASS_LINK = "https://somchandtrust-boo.github.io/My-Compass/";
 
-let map;
-let gpsMarker;
-let gpsCircle;
+(function(){
+    "use strict";
 
-let sirenOscillator = null;
-let sirenGain = null;
-let audioContext = null;
+    let finalRecognition = null;
+    let finalListening = false;
 
-let alertActive = false;
-
-let recognition = null;
-let listening = false;
-
-let lastReport = null;
-
-/* =========================================
-   CBRND APP LINKS
-========================================= */
-
-const APP_LINKS = {
-
-    qr:
-        "https://somchandtrust-boo.github.io/CBRND-QR",
-
-    camera:
-        "https://somchandtrust-boo.github.io/hd-smart-camera/",
-
-    sos:
-        "YOUR_SOS_SIREN_URL",
-
-    location:
-        "https://somchandtrust-boo.github.io/CBRND-Location-Tracker/admin.html",
-
-    compass:
-        "https://somchandtrust-boo.github.io/My-Compass/",
-
-    ai:
-        "https://aivoice.wecon.group/"
-
-};
-/* =========================================
-   OPEN CBRND APPLICATION
-========================================= */
-
-function openApp(appName){
-
-    const url =
-        APP_LINKS[appName];
-
-    if(!url){
-
-        showModal(
-            "LINK ERROR",
-            "Application link is not configured."
-        );
-
-        return;
-
-    }
-
-
-    if(
-        url === "YOUR_SOS_SIREN_URL" ||
-        url === "YOUR_AI_VOICE_ASSISTANT_URL"
-    ){
-
-        showModal(
-            "SOS SIREN LINK",
-            appName === "sos" ? "Please add your real SOS Siren URL in APP_LINKS.sos." : "Please add your AI Voice Assistant URL in APP_LINKS.ai."
-        );
-
-        return;
-
-    }
-
-
-    addHistory(
-        "APP",
-        "OPENING " + appName.toUpperCase()
-    );
-
-
-    const popup =
-        window.open(
-            url,
-            "_blank",
-            "noopener,noreferrer"
-        );
-
-
-    if(!popup){
-
-        showModal(
-            "POPUP BLOCKED",
-            "Browser blocked the new tab. Please allow popups for this site."
-        );
-
-        return;
-
-    }
-
-
-    speak(
-        appName === "qr"
-            ? "QR Generator is opening."
-            : appName === "camera"
-            ? "Smart Camera is opening."
-            : appName === "sos"
-            ? "SOS Siren is opening."
-            : "Location Tracker is opening."
-    );
-
-}
-/* =========================================
-   COMPASS + SOCIAL APPS
-========================================= */
-
-function openCompass(){
-    const url = "https://www.google.com/search?q=compass";
-    addHistory("COMPASS","COMPASS OPENED");
-    const popup = window.open(url,"_blank","noopener,noreferrer");
-    if(!popup) window.location.href = url;
-    else speak("Compass is opening.");
-}
-
-const SOCIAL_LINKS = {
-    instagram:"https://www.instagram.com/",
-    facebook:"https://www.facebook.com/",
-    whatsapp:"https://web.whatsapp.com/"
-};
-
-function openSocial(platform){
-    const url = SOCIAL_LINKS[platform];
-    if(!url) return;
-
-    addHistory("SOCIAL","OPENING " + platform.toUpperCase());
-
-    const popup = window.open(url,"_blank","noopener,noreferrer");
-
-    if(!popup){
-        window.location.href = url;
-        return;
-    }
-
-    speak(
-        platform === "instagram"
-        ? "Instagram is opening."
-        : platform === "facebook"
-        ? "Facebook is opening."
-        : "WhatsApp is opening."
-    );
-}
-
-/* =========================================
-   MAP INITIALIZATION
-========================================= */
-
-function initMap(){
-
-    map = L.map("map").setView(
-        [23.0225,72.5714],
-        10
-    );
-
-
-    L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-            maxZoom:19,
-            attribution:
-                '&copy; OpenStreetMap contributors'
+    function say(text){
+        if(typeof window.speak === "function"){
+            window.speak(text);
+            return;
         }
-    ).addTo(map);
-
-
-    L.marker(
-        [23.0225,72.5714]
-    )
-    .addTo(map)
-    .bindPopup(
-        "CBRND Dashboard Start Location"
-    );
-
-}
-
-
-/* =========================================
-   OPEN MAP
-========================================= */
-
-function openMap(){
-
-    document
-        .getElementById("mapStatus")
-        .innerText =
-        "MAP ACTIVE";
-
-
-    map.invalidateSize();
-
-
-    document
-        .getElementById("map")
-        .scrollIntoView({
-            behavior:"smooth",
-            block:"center"
-        });
-
-
-    addHistory(
-        "MAP",
-        "LIVE MAP OPENED"
-    );
-
-
-    speak(
-        "Live map is now open."
-    );
-
-}
-
-
-/* =========================================
-   GPS
-========================================= */
-
-function getGPS(){
-
-    if(!navigator.geolocation){
-
-        showModal(
-            "GPS ERROR",
-            "This browser does not support GPS."
-        );
-
-        return;
-
-    }
-
-
-    document
-        .getElementById("gpsState")
-        .innerText =
-        "SEARCHING";
-
-
-    document
-        .getElementById("gpsBar")
-        .style.width =
-        "50%";
-
-
-    navigator.geolocation.getCurrentPosition(
-
-        position => {
-
-            const lat =
-                position.coords.latitude;
-
-            const lon =
-                position.coords.longitude;
-
-            const accuracy =
-                position.coords.accuracy;
-
-
-            document
-                .getElementById("gpsState")
-                .innerText =
-                "ACTIVE";
-
-
-            document
-                .getElementById("gpsBar")
-                .style.width =
-                "100%";
-
-
-            document
-                .getElementById("mapStatus")
-                .innerText =
-                "GPS LOCK";
-
-
-            if(gpsMarker){
-
-                map.removeLayer(
-                    gpsMarker
-                );
-
-            }
-
-
-            if(gpsCircle){
-
-                map.removeLayer(
-                    gpsCircle
-                );
-
-            }
-
-
-            gpsMarker =
-                L.marker([lat,lon])
-                .addTo(map)
-                .bindPopup(
-                    `
-                    <b>CBRND GPS</b><br>
-                    Latitude: ${lat.toFixed(6)}<br>
-                    Longitude: ${lon.toFixed(6)}<br>
-                    Accuracy: ${accuracy.toFixed(1)} m
-                    `
-                )
-                .openPopup();
-
-
-            gpsCircle =
-                L.circle(
-                    [lat,lon],
-                    {
-                        radius:accuracy
-                    }
-                )
-                .addTo(map);
-
-
-            map.setView(
-                [lat,lon],
-                16
-            );
-
-
-            addHistory(
-                "GPS",
-                `LAT ${lat.toFixed(5)} / LON ${lon.toFixed(5)}`
-            );
-
-
-            speak(
-                "GPS location received."
-            );
-
-        },
-
-        error => {
-
-            document
-                .getElementById("gpsState")
-                .innerText =
-                "ERROR";
-
-
-            document
-                .getElementById("gpsBar")
-                .style.width =
-                "0%";
-
-
-            let msg =
-                "GPS permission or signal error.";
-
-
-            if(error.code === 1){
-
-                msg =
-                    "Location permission was denied.";
-
-            }
-
-
-            if(error.code === 2){
-
-                msg =
-                    "Location is unavailable.";
-
-            }
-
-
-            if(error.code === 3){
-
-                msg =
-                    "GPS request timed out.";
-
-            }
-
-
-            addHistory(
-                "GPS",
-                msg
-            );
-
-
-            speak(msg);
-
-        },
-
-        {
-            enableHighAccuracy:true,
-            timeout:15000,
-            maximumAge:0
+        if("speechSynthesis" in window){
+            speechSynthesis.cancel();
+            speechSynthesis.speak(new SpeechSynthesisUtterance(text));
         }
-
-    );
-
-}
-
-
-/* =========================================
-   SIREN
-========================================= */
-
-function toggleSiren(){
-
-    if(sirenOscillator){
-
-        stopSiren();
-
-    }else{
-
-        startSiren();
-
     }
 
-}
+    function clean(text){
+        return String(text || "")
+            .toLowerCase()
+            .replace(/[.,!?;:]/g," ")
+            .replace(/\s+/g," ")
+            .trim();
+    }
 
-
-function startSiren(){
-
-    try{
-
-        audioContext =
-            audioContext ||
-            new (
-                window.AudioContext ||
-                window.webkitAudioContext
-            )();
-
-
-        if(audioContext.state === "suspended"){
-
-            audioContext.resume();
-
+    function addHistorySafe(type,text){
+        if(typeof window.addHistory === "function"){
+            window.addHistory(type,text);
         }
-
-
-        sirenOscillator =
-            audioContext.createOscillator();
-
-
-        sirenGain =
-            audioContext.createGain();
-
-
-        sirenOscillator.type =
-            "sawtooth";
-
-
-        sirenGain.gain.value =
-            0.07;
-
-
-        sirenOscillator.connect(
-            sirenGain
-        );
-
-
-        sirenGain.connect(
-            audioContext.destination
-        );
-
-
-        sirenOscillator.start();
-
-
-        let high = false;
-
-
-        window.sirenTimer =
-            setInterval(()=>{
-
-                if(!sirenOscillator)
-                    return;
-
-
-                sirenOscillator.frequency
-                    .setTargetAtTime(
-                        high ? 550 : 950,
-                        audioContext.currentTime,
-                        .04
-                    );
-
-
-                high = !high;
-
-            },450);
-
-
-        document
-            .getElementById("sirenText")
-            .innerText =
-            "Stop siren";
-
-
-        addHistory(
-            "SIREN",
-            "ACTIVATED"
-        );
-
-
-        speak(
-            "Siren activated."
-        );
-
-    }catch(error){
-
-        showModal(
-            "AUDIO ERROR",
-            "Browser could not start the audio system."
-        );
-
     }
 
-}
-
-
-function stopSiren(){
-
-    if(window.sirenTimer){
-
-        clearInterval(
-            window.sirenTimer
-        );
-
-        window.sirenTimer =
-            null;
-
-    }
-
-
-    if(sirenOscillator){
-
-        try{
-
-            sirenOscillator.stop();
-
-        }catch(e){}
-
-        sirenOscillator =
-            null;
-
-    }
-
-
-    sirenGain =
-        null;
-
-
-    document
-        .getElementById("sirenText")
-        .innerText =
-        "Start siren";
-
-
-    addHistory(
-        "SIREN",
-        "STOPPED"
-    );
-
-}
-
-
-/* =========================================
-   EMERGENCY ALERT
-========================================= */
-
-function activateAlert(){
-
-    alertActive =
-        !alertActive;
-
-
-    const alertMode =
-        document.getElementById(
-            "alertMode"
-        );
-
-
-    if(alertActive){
-
-        alertMode.classList.add(
-            "active"
-        );
-
-
-        addHistory(
-            "EMERGENCY ALERT",
-            "ACTIVATED"
-        );
-
-
-        speak(
-            "Emergency alert activated."
-        );
-
-
-        showModal(
-            "🚨 EMERGENCY ALERT",
-            "Local browser emergency alert is active. Press STOP to deactivate."
-        );
-
-    }else{
-
-        deactivateAlert();
-
-    }
-
-}
-
-
-function deactivateAlert(){
-
-    alertActive =
-        false;
-
-
-    document
-        .getElementById("alertMode")
-        .classList.remove(
-            "active"
-        );
-
-
-    addHistory(
-        "EMERGENCY ALERT",
-        "DEACTIVATED"
-    );
-
-}
-
-
-/* =========================================
-   STOP EVERYTHING
-========================================= */
-
-function stopEverything(){
-
-    stopSiren();
-
-    deactivateAlert();
-
-
-    if(
-        recognition &&
-        listening
-    ){
-
-        recognition.stop();
-
-    }
-
-
-    if(
-        window.speechSynthesis
-    ){
-
-        speechSynthesis.cancel();
-
-    }
-
-
-    document
-        .getElementById("voiceStatus")
-        .innerText =
-        "All active systems stopped";
-
-
-    addHistory(
-        "STOP ALL",
-        "ALL ACTIVE FUNCTIONS STOPPED"
-    );
-
-}
-
-
-/* =========================================
-   REPORT
-========================================= */
-
-function openReport(){
-
-    document
-        .getElementById(
-            "reportSection"
-        )
-        .scrollIntoView({
-            behavior:"smooth",
-            block:"center"
-        });
-
-
-    addHistory(
-        "REPORT",
-        "REPORT PANEL OPENED"
-    );
-
-
-    speak(
-        "Report panel is open."
-    );
-
-}
-
-
-
-
-/* =========================================
-   UPDATE METRICS
-========================================= */
-
-function updateMetrics(data){
-
-    const temp =
-        findNumber(
-            data,
-            [
-                "temperature",
-                "temp",
-                "temperature_c"
-            ]
-        );
-
-
-    const radiation =
-        findNumber(
-            data,
-            [
-                "radiation",
-                "usv/h",
-                "usv_h",
-                "µsv/h",
-                "usv"
-            ]
-        );
-
-
-    const aqi =
-        findNumber(
-            data,
-            [
-                "aqi",
-                "air_quality_index"
-            ]
-        );
-
-
-    if(temp.length){
-
-        const value =
-            average(temp);
-
-
-        document
-            .getElementById("temp")
-            .innerText =
-            value.toFixed(2);
-
-
-        document
-            .getElementById("tempBar")
-            .style.width =
-            Math.min(
-                100,
-                Math.max(
-                    0,
-                    value / 50 * 100
-                )
-            ) + "%";
-
-    }
-
-
-    if(radiation.length){
-
-        const value =
-            average(radiation);
-
-
-        document
-            .getElementById("radiation")
-            .innerText =
-            value.toFixed(4);
-
-
-        document
-            .getElementById("radiationBar")
-            .style.width =
-            Math.min(
-                100,
-                value / 1 * 100
-            ) + "%";
-
-    }
-
-
-    if(aqi.length){
-
-        const value =
-            average(aqi);
-
-
-        document
-            .getElementById("aqi")
-            .innerText =
-            value.toFixed(0);
-
-
-        document
-            .getElementById("aqiBar")
-            .style.width =
-            Math.min(
-                100,
-                value / 500 * 100
-            ) + "%";
-
-    }
-
-}
-
-
-/* =========================================
-   FIND NUMBER COLUMN
-========================================= */
-
-function findNumber(data,names){
-
-    const found = [];
-
-
-    for(const obj of data){
-
-        let value = null;
-
-
-        for(const name of names){
-
-            if(
-                Object.prototype
-                .hasOwnProperty
-                .call(obj,name)
-            ){
-
-                value =
-                    parseFloat(
-                        String(
-                            obj[name]
-                        ).replace(
-                            /[^0-9.-]/g,
-                            ""
-                        )
-                    );
-
-                break;
-
-            }
-
+    window.CBRND_OPEN_REAL_COMPASS = function(){
+        addHistorySafe("COMPASS","REAL COMPASS OPENED");
+        const tab = window.open(CBRND_COMPASS_LINK,"_blank");
+        if(!tab){
+            window.location.href = CBRND_COMPASS_LINK;
+            return;
         }
+        say("Your real compass is opening.");
+    };
 
+    function handleExtraCommand(command){
+        const c = clean(command);
 
         if(
-            Number.isFinite(value)
+            c.includes("my mobile") ||
+            c.includes("my phone") ||
+            c.includes("my number") ||
+            c.includes("mobile number") ||
+            c.includes("phone number") ||
+            c.includes("mera mobile") ||
+            c.includes("mera phone") ||
+            c.includes("mera number") ||
+            c.includes("मेरा मोबाइल") ||
+            c.includes("मेरा फोन") ||
+            c.includes("मेरा नंबर") ||
+            c.includes("मोबाइल नंबर")
         ){
-
-            found.push(value);
-
+            if(CBRND_USER_MOBILE === "YOUR_MOBILE_NUMBER"){
+                say("Please add your mobile number in the script settings.");
+            }else{
+                say("Your mobile number is " + CBRND_USER_MOBILE.split("").join(" "));
+            }
+            addHistorySafe("VOICE","Mobile number requested");
+            return true;
         }
 
+        if(
+            c.includes("your name") ||
+            c.includes("what is your name") ||
+            c.includes("who are you") ||
+            c.includes("tumhara naam") ||
+            c.includes("aapka naam") ||
+            c.includes("आपका नाम") ||
+            c.includes("तुम्हारा नाम")
+        ){
+            say("My name is " + CBRND_ASSISTANT_NAME);
+            addHistorySafe("VOICE","Assistant name requested");
+            return true;
+        }
+
+        if(
+            c.includes("compass") ||
+            c.includes("कंपास") ||
+            c.includes("कम्पास")
+        ){
+            window.CBRND_OPEN_REAL_COMPASS();
+            return true;
+        }
+
+        return false;
     }
 
+    function installFinalButtons(){
+        const compass = document.getElementById("compassBtn");
+        if(compass){
+            const replacement = compass.cloneNode(true);
+            replacement.removeAttribute("onclick");
+            compass.replaceWith(replacement);
+            replacement.addEventListener("click",window.CBRND_OPEN_REAL_COMPASS);
+        }
 
-    return found;
+        const mic = document.getElementById("mic");
+        if(mic && window.SpeechRecognition || window.webkitSpeechRecognition){
+            const replacement = mic.cloneNode(true);
+            replacement.removeAttribute("onclick");
+            mic.replaceWith(replacement);
+            installFinalVoice(replacement);
+        }
+    }
 
-}
+    function installFinalVoice(mic){
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if(!SR) return;
 
+        finalRecognition = new SR();
+        finalRecognition.continuous = false;
+        finalRecognition.interimResults = false;
+        finalRecognition.lang = "hi-IN";
 
-
-
-/* =========================================
-   VOICE RECOGNITION
-========================================= */
-
-const SpeechRecognition =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-
-if(SpeechRecognition){
-
-    recognition =
-        new SpeechRecognition();
-
-
-    recognition.continuous =
-        false;
-
-
-    recognition.interimResults =
-        false;
-
-
-    recognition.lang =
-        "hi-IN";
-
-
-    recognition.onstart =
-        function(){
-
-            listening =
-                true;
-
-
-            document
-                .getElementById("mic")
-                .classList
-                .add("listening");
-
-
-            document
-                .getElementById("mic")
-                .innerText =
-                "🔴";
-
-
-            document
-                .getElementById(
-                    "voiceStatus"
-                )
-                .innerText =
-                "Listening... / सुन रहा हूँ...";
-
+        finalRecognition.onstart = function(){
+            finalListening = true;
+            mic.classList.add("listening");
+            mic.innerText = "🔴";
+            const status=document.getElementById("voiceStatus");
+            if(status) status.innerText="Listening... / सुन रहा हूँ...";
         };
 
-
-    recognition.onend =
-        function(){
-
-            listening =
-                false;
-
-
-            document
-                .getElementById("mic")
-                .classList
-                .remove("listening");
-
-
-            document
-                .getElementById("mic")
-                .innerText =
-                "🎤";
-
+        finalRecognition.onend = function(){
+            finalListening = false;
+            mic.classList.remove("listening");
+            mic.innerText = "🎤";
         };
 
-
-    recognition.onerror =
-        function(event){
-
-            addHistory(
-                "VOICE ERROR",
-                event.error
-            );
-
-
-            document
-                .getElementById(
-                    "voiceStatus"
-                )
-                .innerText =
-                "Voice error: " +
-                event.error;
-
+        finalRecognition.onerror = function(e){
+            finalListening = false;
+            mic.classList.remove("listening");
+            mic.innerText = "🎤";
+            const status=document.getElementById("voiceStatus");
+            if(status) status.innerText="Voice error: " + e.error;
         };
 
+        finalRecognition.onresult = function(event){
+            const command = event.results[0][0].transcript.trim();
+            const status=document.getElementById("voiceStatus");
+            if(status) status.innerText="Command: " + command;
+            addHistorySafe("VOICE",command);
 
-    recognition.onresult =
-        function(event){
+            if(handleExtraCommand(command)) return;
 
-            const command =
-                event
-                .results[0][0]
-                .transcript
-                .trim()
-                .toLowerCase();
-
-
-            document
-                .getElementById(
-                    "voiceStatus"
-                )
-                .innerText =
-                "Command: " +
-                command;
-
-
-            addHistory(
-                command,
-                "COMMAND RECEIVED"
-            );
-
-
-            processCommand(
-                command
-            );
-
-        };
-
-}
-
-
-/* =========================================
-   MICROPHONE
-========================================= */
-
-document
-    .getElementById("mic")
-    .addEventListener(
-        "click",
-        function(){
-
-            if(!recognition){
-
-                speak(
-                    "Speech recognition is not supported in this browser."
-                );
-
-                return;
-
+            if(typeof window.processVoiceCommand === "function"){
+                window.processVoiceCommand(command);
+            }else if(typeof window.processCommand === "function"){
+                window.processCommand(command);
             }
+        };
 
-
-            if(listening){
-
-                recognition.stop();
-
+        mic.addEventListener("click",function(){
+            if(finalListening){
+                finalRecognition.stop();
                 return;
-
             }
-
-
             try{
-
-                recognition.lang =
-                    "hi-IN";
-
-                recognition.start();
-
-            }catch(error){
-
-                console.log(error);
-
+                finalRecognition.lang="hi-IN";
+                finalRecognition.start();
+            }catch(e){
+                console.warn(e);
             }
-
-        }
-    );
-
-
-/* =========================================
-   VOICE COMMAND PROCESSOR
-========================================= */
-
-function processCommand(command){
-
-  const c = String(command || "")
-    .toLowerCase()
-    .replace(/[.,!?;:]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (!c) return;
-
-    if(
-        c.includes("compass") ||
-        c.includes("open compass") ||
-        c.includes("show compass") ||
-        c.includes("कंपास") ||
-        c.includes("कम्पास") ||
-        c.includes("कंपास खोलो") ||
-        c.includes("कम्पास खोलो")
-    ){
-        openCompass();
-        return;
+        });
     }
 
-    if(
-        c.includes("ai voice assistant") ||
-        c.includes("voice assistant") ||
-        c.includes("open ai assistant") ||
-        c.includes("open voice assistant") ||
-        c.includes("एआई वॉइस असिस्टेंट") ||
-        c.includes("एआई वॉइस") ||
-        c.includes("वॉइस असिस्टेंट")
-    ){
-        openApp("ai");
-        return;
-    }
-
-    if(
-        c.includes("instagram") ||
-        c.includes("open instagram") ||
-        c.includes("इंस्टाग्राम") ||
-        c.includes("इंस्टा खोलो")
-    ){
-        openSocial("instagram");
-        return;
-    }
-
-    if(
-        c.includes("facebook") ||
-        c.includes("open facebook") ||
-        c.includes("फेसबुक") ||
-        c.includes("फेसबुक खोलो")
-    ){
-        openSocial("facebook");
-        return;
-    }
-
-    if(
-        c.includes("whatsapp") ||
-        c.includes("open whatsapp") ||
-        c.includes("व्हाट्सऐप") ||
-        c.includes("व्हाट्सएप") ||
-        c.includes("व्हाट्सएप खोलो") ||
-        c.includes("व्हाट्सऐप खोलो")
-    ){
-        openSocial("whatsapp");
-        return;
-    }
-
-
-  /* ================================
-     STOP SIREN
-     ================================ */
-  if (
-    c.includes("stop siren") ||
-    c.includes("siren off") ||
-    c.includes("siren band") ||
-    c.includes("siren bandh") ||
-    c.includes("सायरन बंद") ||
-    c.includes("सायरन बन्द")
-  ) {
-    stopSiren();
-    return;
-  }
-
-
-  /* ================================
-     STOP EVERYTHING
-     ================================ */
-  if (
-    c === "stop" ||
-    c.includes("stop everything") ||
-    c.includes("सब बंद") ||
-    c.includes("सब बन्द") ||
-    c.includes("सब कुछ बंद") ||
-    c.includes("सब कुछ बन्द") ||
-    c.includes("रुको") ||
-    c.includes("रुक जाओ")
-  ) {
-    stopEverything();
-    return;
-  }
-
-
-  /* ================================
-     LOCATION TRACKER
-     IMPORTANT:
-     Before generic GPS/location
-     ================================ */
-  if (
-    c.includes("location tracker") ||
-    c.includes("live tracker") ||
-    c.includes("open tracker") ||
-    c.includes("लोकेशन ट्रैकर") ||
-    c.includes("लोकेशन ट्रैकर खोलो") ||
-    c.includes("लाइव ट्रैकर")
-  ) {
-    openApp("location", true);
-    return;
-  }
-
-
-  /* ================================
-     QR GENERATOR
-     ================================ */
-  if (
-    c.includes("qr") ||
-    c.includes("q r") ||
-    c.includes("qr generator") ||
-    c.includes("open qr") ||
-    c.includes("क्यूआर") ||
-    c.includes("क्यू आर") ||
-    c.includes("क्यूआर खोलो")
-  ) {
-    openApp("qr", true);
-    return;
-  }
-
-
-  /* ================================
-     SMART CAMERA
-     ================================ */
-  if (
-    c.includes("camera") ||
-    c.includes("open camera") ||
-    c.includes("smart camera") ||
-    c.includes("कैमरा") ||
-    c.includes("कैमरा खोलो")
-  ) {
-    openApp("camera", true);
-    return;
-  }
-
-
-  /* ================================
-     SOS
-     ================================ */
-  if (
-    c.includes("sos") ||
-    c.includes("s o s") ||
-    c.includes("open sos") ||
-    c.includes("sos siren") ||
-    c.includes("एसओएस") ||
-    c.includes("एस ओ एस") ||
-    c.includes("एसओएस खोलो")
-  ) {
-    openApp("sos", true);
-    return;
-  }
-
-
-  /* ================================
-     SIREN ON
-     ================================ */
-  if (
-    c.includes("start siren") ||
-    c.includes("open siren") ||
-    c.includes("siren on") ||
-    c.includes("turn on siren") ||
-    c.includes("सायरन चालू") ||
-    c.includes("सायरन चालु") ||
-    c.includes("सायरन ऑन") ||
-    c.includes("सायरन खोलो")
-  ) {
-    startSiren();
-    return;
-  }
-
-
-  /* ================================
-     ALERT
-     ================================ */
-  if (
-    c.includes("alert") ||
-    c.includes("open alert") ||
-    c.includes("activate alert") ||
-    c.includes("अलर्ट") ||
-    c.includes("अलर्ट चालू") ||
-    c.includes("अलर्ट खोलो")
-  ) {
-    activateAlert();
-    return;
-  }
-
-
-  /* ================================
-     GPS
-     ================================ */
-  if (
-    c.includes("gps") ||
-    c.includes("g p s") ||
-    c.includes("open gps") ||
-    c.includes("get gps") ||
-    c.includes("my location") ||
-    c.includes("current location") ||
-    c.includes("जीपीएस") ||
-    c.includes("जी पी एस") ||
-    c.includes("जीपीएस चालू") ||
-    c.includes("मेरी लोकेशन")
-  ) {
-    getGPS();
-    return;
-  }
-
-
-  /* ================================
-     MAP
-     ================================ */
-  if (
-    c.includes("map") ||
-    c.includes("open map") ||
-    c.includes("live map") ||
-    c.includes("show map") ||
-    c.includes("मैप") ||
-    c.includes("मानचित्र") ||
-    c.includes("मैप खोलो") ||
-    c.includes("मैप दिखाओ")
-  ) {
-    openMap();
-    return;
-  }
-
-
-  /* ================================
-     SYSTEM STATUS
-     ================================ */
-  if (
-    c.includes("status") ||
-    c.includes("system status") ||
-    c.includes("स्टेटस") ||
-    c.includes("स्थिति")
-  ) {
-
-    const gps =
-      document.getElementById("gpsStatus").textContent;
-
-    speak(
-      "System status. GPS is " +
-      gps +
-      ". Siren is " +
-      (sirenRunning ? "on" : "off") +
-      "."
-    );
-
-    addHistory(
-      "STATUS",
-      "GPS " +
-      gps +
-      " | SIREN " +
-      (sirenRunning ? "ON" : "OFF")
-    );
-
-    return;
-  }
-
-
-  /* ================================
-     UNKNOWN COMMAND
-     ================================ */
-  showModal(
-    "COMMAND NOT RECOGNIZED",
-    "Command received: " +
-    command +
-    "<br><br>" +
-    "Try: Open Map, Open GPS, Open Siren, Open Alert, Open QR, Open Camera, Open SOS, Open Location Tracker, or Stop."
-  );
-
-  speak("Command not recognized.");
-}
-
-/* =========================================
-   MATCH COMMAND
-========================================= */
-
-function matches(text,words){
-
-    return words.some(
-        word =>
-        text.includes(
-            word
-        )
-    );
-
-}
-
-
-/* =========================================
-   TEXT TO SPEECH
-========================================= */
-
-function speak(text){
-
-    if(
-        !("speechSynthesis" in window)
-    ){
-
-        return;
-
-    }
-
-
-    speechSynthesis.cancel();
-
-
-    const speech =
-        new SpeechSynthesisUtterance(
-            text
-        );
-
-
-    speech.lang =
-        /[\u0900-\u097F]/.test(text)
-        ? "hi-IN"
-        : "en-US";
-
-
-    speech.rate =
-        .95;
-
-
-    speech.pitch =
-        1;
-
-
-    speechSynthesis.speak(
-        speech
-    );
-
-}
-
-
-/* =========================================
-   HISTORY
-========================================= */
-
-function addHistory(
-    command,
-    result
-){
-
-    const history =
-        JSON.parse(
-            localStorage.getItem(
-                "cbrndHistory"
-            ) || "[]"
-        );
-
-
-    history.unshift({
-
-        time:
-            new Date().toLocaleString(),
-
-        command,
-        result
-
+    document.addEventListener("DOMContentLoaded",function(){
+        /* Run after original script's DOMContentLoaded handlers. */
+        setTimeout(installFinalButtons,100);
     });
 
-
-    if(history.length > 100){
-
-        history.length =
-            100;
-
-    }
-
-
-    localStorage.setItem(
-        "cbrndHistory",
-        JSON.stringify(history)
-    );
-
-
-    renderHistory();
-
-}
-
-
-function renderHistory(){
-
-    const history =
-        JSON.parse(
-            localStorage.getItem(
-                "cbrndHistory"
-            ) || "[]"
-        );
-
-
-    const container =
-        document.getElementById(
-            "history"
-        );
-
-
-    if(!history.length){
-
-        container.innerHTML =
-            `
-            <div class="historyItem">
-                No command history.
-            </div>
-            `;
-
-        return;
-
-    }
-
-
-    container.innerHTML =
-        history.map(
-            item => `
-
-            <div class="historyItem">
-
-                <div class="historyTime">
-                    ${escapeHTML(item.time)}
-                </div>
-
-                <div class="historyCommand">
-                    ${escapeHTML(item.command)}
-                </div>
-
-                <div class="historyResult">
-                    ${escapeHTML(item.result)}
-                </div>
-
-            </div>
-
-            `
-        ).join("");
-
-}
-
-
-function clearHistory(){
-
-    localStorage.removeItem(
-        "cbrndHistory"
-    );
-
-
-    renderHistory();
-
-}
-
-
-/* =========================================
-   MODAL
-========================================= */
-
-function showModal(
-    title,
-    text
-){
-
-    document
-        .getElementById("modalTitle")
-        .innerText =
-        title;
-
-
-    document
-        .getElementById("modalText")
-        .innerText =
-        text;
-
-
-    document
-        .getElementById("modal")
-        .classList
-        .add("show");
-
-}
-
-
-function closeModal(){
-
-    document
-        .getElementById("modal")
-        .classList
-        .remove("show");
-
-}
-
-
-/* =========================================
-   ESCAPE HTML
-========================================= */
-
-function escapeHTML(text){
-
-    return String(text)
-        .replaceAll(
-            "&",
-            "&amp;"
-        )
-        .replaceAll(
-            "<",
-            "&lt;"
-        )
-        .replaceAll(
-            ">",
-            "&gt;"
-        )
-        .replaceAll(
-            '"',
-            "&quot;"
-        )
-        .replaceAll(
-            "'",
-            "&#039;"
-        );
-
-}
-
-
-/* =========================================
-   KEYBOARD SHORTCUTS
-========================================= */
-
-document.addEventListener(
-    "keydown",
-    function(event){
-
-        /* SPACE = MIC */
-
-        if(
-            event.code === "Space" &&
-            event.target.tagName !== "INPUT"
-        ){
-
-            event.preventDefault();
-
-            document
-                .getElementById("mic")
-                .click();
-
-        }
-
-
-        /* ESC = STOP */
-
-        if(event.key === "Escape"){
-
-            stopEverything();
-
-        }
-
-    }
-);
-
-
-/* =========================================
-   STARTUP
-========================================= */
-
-window.addEventListener(
-    "load",
-    function(){
-
-        initMap();
-
-        renderHistory();
-
-
-        addHistory(
-            "SYSTEM",
-            "CBRND COMMAND CENTER V2 READY"
-        );
-
-    }
-);
-
+    window.CBRND_USER_MOBILE = CBRND_USER_MOBILE;
+    window.CBRND_ASSISTANT_NAME = CBRND_ASSISTANT_NAME;
+    window.CBRND_COMPASS_LINK = CBRND_COMPASS_LINK;
+})();
 </script>
 
 </body>
