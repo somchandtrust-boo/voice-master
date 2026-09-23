@@ -214,8 +214,10 @@ document.addEventListener(
     "DOMContentLoaded",
     function () {
 
+        setupChotiAlexaIdentity();
+
         console.log(
-            "CBRND Command Center V2 starting..."
+            "Choti Alexa Command Center starting..."
         );
 
 
@@ -2720,15 +2722,9 @@ function initVoice() {
 
 
     recognition.lang =
-        voiceLanguage
-
-            ?
-
-            voiceLanguage.value
-
-            :
-
-            "hi-IN";
+        voiceLanguage && voiceLanguage.value
+            ? voiceLanguage.value
+            : "hi-IN";
 
 
     if (voiceLanguage) {
@@ -2934,20 +2930,16 @@ function toggleListening() {
 
     try {
 
+        if (isListening) return;
+
         const language =
             el("voiceLanguage");
 
 
         recognition.lang =
-            language
-
-                ?
-
-                language.value
-
-                :
-
-                "hi-IN";
+            language && language.value
+                ? language.value
+                : "hi-IN";
 
 
         recognition.start();
@@ -2970,6 +2962,138 @@ function toggleListening() {
    VOICE COMMAND PROCESSOR
    ========================================================= */
 
+
+/* =========================================================
+   CHOTI ALEXA — IDENTITY + MOBILE
+   ========================================================= */
+
+const CHOTI_ALEXA_NAME = "Choti Alexa";
+
+function getSavedMobile(){
+    return localStorage.getItem("CHOTI_ALEXA_MOBILE") || "";
+}
+
+function setSavedMobile(value){
+    const cleaned = String(value || "").replace(/[^\d+()\-\s]/g,"").trim();
+    localStorage.setItem("CHOTI_ALEXA_MOBILE", cleaned);
+    return cleaned;
+}
+
+function speakChotiAlexa(text){
+    if (typeof speak === "function") {
+        speak(text);
+    }
+}
+
+function updateChotiAlexaMobileUI(){
+    const input = document.getElementById("userMobile");
+    const status = document.getElementById("mobileStatus");
+
+    const number = getSavedMobile();
+
+    if (input && number) {
+        input.value = number;
+    }
+
+    if (status) {
+        status.textContent = number
+            ? "Mobile number saved. Ask: “Mera mobile number batao”"
+            : "Say: “What is your name?” or “Mera mobile number batao”";
+    }
+}
+
+function setupChotiAlexaIdentity(){
+    const saveButton = document.getElementById("saveMobileBtn");
+    const input = document.getElementById("userMobile");
+
+    updateChotiAlexaMobileUI();
+
+    if (saveButton && !saveButton.dataset.bound) {
+        saveButton.dataset.bound = "true";
+
+        saveButton.addEventListener("click", function(){
+            const number = setSavedMobile(input ? input.value : "");
+
+            const status = document.getElementById("mobileStatus");
+
+            if (!number) {
+                if (status) status.textContent = "Please enter your mobile number.";
+                speakChotiAlexa("Please enter your mobile number.");
+                return;
+            }
+
+            if (status) {
+                status.textContent = "Mobile number saved successfully.";
+            }
+
+            if (typeof addHistory === "function") {
+                addHistory("PROFILE", "Mobile number saved");
+            }
+
+            speakChotiAlexa("Your mobile number has been saved.");
+        });
+    }
+}
+
+function handleChotiAlexaCommand(command){
+    const text = String(command || "")
+        .toLowerCase()
+        .replace(/[.,!?;:]/g," ")
+        .replace(/\s+/g," ")
+        .trim();
+
+    const nameAsk =
+        text.includes("what is your name") ||
+        text.includes("what's your name") ||
+        text.includes("your name") ||
+        text.includes("who are you") ||
+        text.includes("aapka naam") ||
+        text.includes("aapka naam kya hai") ||
+        text.includes("tumhara naam") ||
+        text.includes("तुम्हारा नाम") ||
+        text.includes("आपका नाम");
+
+    if (nameAsk) {
+        speakChotiAlexa("My name is Choti Alexa.");
+        const status = document.getElementById("mobileStatus");
+        if (status) status.textContent = "Assistant: Choti Alexa";
+        return true;
+    }
+
+    const mobileAsk =
+        text.includes("my mobile number") ||
+        text.includes("my phone number") ||
+        text.includes("mobile number") ||
+        text.includes("phone number") ||
+        text.includes("mera mobile") ||
+        text.includes("mera number") ||
+        text.includes("mera phone") ||
+        text.includes("मेरा मोबाइल") ||
+        text.includes("मेरा नंबर") ||
+        text.includes("मोबाइल नंबर");
+
+    if (mobileAsk) {
+        const number = getSavedMobile();
+
+        if (!number) {
+            speakChotiAlexa("Your mobile number is not saved yet.");
+            const status = document.getElementById("mobileStatus");
+            if (status) status.textContent = "Mobile number not saved.";
+        } else {
+            speakChotiAlexa(
+                "Your mobile number is " +
+                number.split("").join(" ")
+            );
+            const status = document.getElementById("mobileStatus");
+            if (status) status.textContent = "Mobile number requested.";
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 function processVoiceCommand(
     command
 ) {
@@ -2985,101 +3109,8 @@ function processVoiceCommand(
         text
     );
 
-
-    /* =====================================================
-       CHOTI ALEXA IDENTITY / MOBILE COMMANDS
-       ===================================================== */
-
-    if (
-        text.includes("what is your name") ||
-        text.includes("what's your name") ||
-        text.includes("your name") ||
-        text.includes("aapka naam") ||
-        text.includes("tumhara naam") ||
-        text.includes("नाम क्या") ||
-        text.includes("नाम बताओ")
-    ) {
-
-        speak(
-            "My name is Choti Alexa."
-        );
-
+    if (handleChotiAlexaCommand(command)) {
         return;
-
-    }
-
-
-    if (
-        text.includes("my mobile number") ||
-        text.includes("my phone number") ||
-        text.includes("mera mobile number") ||
-        text.includes("mera phone number") ||
-        text.includes("मेरा मोबाइल नंबर") ||
-        text.includes("मेरा फोन नंबर")
-    ) {
-
-        const savedMobile =
-            localStorage.getItem(
-                "chotiAlexaMobile"
-            );
-
-        if (savedMobile) {
-
-            speak(
-                "Your saved mobile number is " +
-                savedMobile
-            );
-
-        } else {
-
-            speak(
-                "Your mobile number is not saved yet."
-            );
-
-        }
-
-        return;
-
-    }
-
-
-    if (
-        text.startsWith("save my mobile number") ||
-        text.startsWith("save my phone number") ||
-        text.startsWith("mera mobile number save karo") ||
-        text.startsWith("mera phone number save karo")
-    ) {
-
-        const number =
-            text
-                .replace(/save my mobile number/i, "")
-                .replace(/save my phone number/i, "")
-                .replace(/mera mobile number save karo/i, "")
-                .replace(/mera phone number save karo/i, "")
-                .replace(/[^0-9+]/g, "")
-                .trim();
-
-        if (number.length >= 7) {
-
-            localStorage.setItem(
-                "chotiAlexaMobile",
-                number
-            );
-
-            speak(
-                "Mobile number saved."
-            );
-
-        } else {
-
-            speak(
-                "Please say the mobile number after the save command."
-            );
-
-        }
-
-        return;
-
     }
 
 
@@ -5260,7 +5291,8 @@ function setupButtons() {
 
             if (
                 button &&
-                !button.dataset.bound
+                !button.dataset.bound &&
+                !button.hasAttribute("onclick")
             ) {
 
                 button.addEventListener(
@@ -6149,53 +6181,6 @@ window.downloadReport =
 
 
 /* =========================================================
-   CHOTI ALEXA IDENTITY HELPERS
-   ========================================================= */
-
-window.getChotiAlexaName =
-    function () {
-
-        return "Choti Alexa";
-
-    };
-
-window.getChotiAlexaMobile =
-    function () {
-
-        return localStorage.getItem(
-            "chotiAlexaMobile"
-        ) || "";
-
-    };
-
-window.setChotiAlexaMobile =
-    function (number) {
-
-        const value =
-            String(number || "")
-                .trim();
-
-        if (value) {
-
-            localStorage.setItem(
-                "chotiAlexaMobile",
-                value
-            );
-
-        } else {
-
-            localStorage.removeItem(
-                "chotiAlexaMobile"
-            );
-
-        }
-
-        return value;
-
-    };
-
-
-/* =========================================================
    FINAL STATUS
    ========================================================= */
 
@@ -6217,3 +6202,23 @@ console.log(
 /* =========================================================
    END
    ========================================================= */
+
+/* =========================================================
+   CHOTI ALEXA FINAL SAFETY
+   ========================================================= */
+
+window.CHOTI_ALEXA_NAME = "Choti Alexa";
+
+window.addEventListener("load", function(){
+    try {
+        setupChotiAlexaIdentity();
+    } catch(error) {
+        console.warn("Choti Alexa identity setup:", error);
+    }
+
+    const mic = document.getElementById("mic");
+    if (mic) {
+        mic.setAttribute("aria-label", "Choti Alexa voice command");
+        mic.title = "Choti Alexa — Voice Command";
+    }
+});
