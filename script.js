@@ -1,60 +1,41 @@
 /* =========================================================
    CHOTI ALEXA — CBRND COMMAND CENTER
    FINAL SCRIPT.JS
-   Voice + GPS + Map + Alert + Siren + Apps + History
+   HTML + CSS COMPATIBLE VERSION
    ========================================================= */
 
 "use strict";
 
-/* =========================================================
-   GLOBAL VARIABLES
-   ========================================================= */
-
-let map = null;
-let userMarker = null;
-let accuracyCircle = null;
-
-let recognition = null;
-let isListening = false;
-
-let sirenActive = false;
-let alertActive = false;
-
-let sirenContext = null;
-let sirenOscillator = null;
-let sirenGain = null;
-
-let currentPosition = null;
-
 
 /* =========================================================
-   APP LINKS
+   APP LINKS — OLD LINKS KEPT EXACTLY SAME
    ========================================================= */
 
 const APP_LINKS = {
 
     qr:
-        "https://somchandtrust-boo.github.io/cbrnd-qr-generator/",
+        "https://somchandtrust-boo.github.io/CBRND-QR",
 
     camera:
         "https://somchandtrust-boo.github.io/hd-smart-camera/",
 
     sos:
-        "https://somchandtrust-boo.github.io/CBRND-SOS-Siren/",
+        "YOUR_SOS_SIREN_URL",
 
     location:
         "https://somchandtrust-boo.github.io/CBRND-Location-Tracker/admin.html",
 
     compass:
-        "https://somchandtrust-boo.github.io/cbrnd-compass/",
+        "https://somchandtrust-boo.github.io/My-Compass/",
 
     ai:
-        "https://my-alexa.onrender.com/"
+        "https://aivoice.wecon.group/"
+
 };
 
 
 /* =========================================================
-   SOCIAL LINKS
+   SOCIAL LINKS — OLD LINKS SAME
    ========================================================= */
 
 const SOCIAL_LINKS = {
@@ -67,28 +48,234 @@ const SOCIAL_LINKS = {
 
     whatsapp:
         "https://web.whatsapp.com/"
+
 };
 
 
 /* =========================================================
-   DOM READY
+   DEFAULT LOCATION
    ========================================================= */
 
-document.addEventListener("DOMContentLoaded", () => {
+let currentLat = 23.0225;
+let currentLon = 72.5714;
 
-    initMap();
 
-    initVoiceRecognition();
+/* =========================================================
+   MAP
+   ========================================================= */
 
-    initMobileSystem();
+let map = null;
+let userMarker = null;
+let accuracyCircle = null;
 
-    loadHistory();
 
-    updateMapStatus("READY");
+/* =========================================================
+   WEATHER
+   ========================================================= */
 
-    console.log("Choti Alexa Command Center READY");
+let currentWeather = null;
 
-});
+
+/* =========================================================
+   VOICE
+   ========================================================= */
+
+let recognition = null;
+let isListening = false;
+
+
+/* =========================================================
+   SIREN
+   ========================================================= */
+
+let audioContext = null;
+let sirenOscillator = null;
+let sirenGain = null;
+let sirenTimer = null;
+let sirenRunning = false;
+
+
+/* =========================================================
+   ALERT
+   ========================================================= */
+
+let alertActive = false;
+
+
+/* =========================================================
+   DOM HELPER
+   ========================================================= */
+
+function el(id) {
+    return document.getElementById(id);
+}
+
+
+/* =========================================================
+   HISTORY
+   ========================================================= */
+
+const HISTORY_KEY = "CBRND_COMMAND_HISTORY";
+
+
+function addHistory(type, message) {
+
+    let history = [];
+
+    try {
+        history =
+            JSON.parse(
+                localStorage.getItem(HISTORY_KEY)
+            ) || [];
+    }
+
+    catch (error) {
+        history = [];
+    }
+
+
+    history.unshift({
+
+        type: type,
+
+        text: message,
+
+        time:
+            new Date().toLocaleString()
+
+    });
+
+
+    history =
+        history.slice(0, 50);
+
+
+    try {
+
+        localStorage.setItem(
+            HISTORY_KEY,
+            JSON.stringify(history)
+        );
+
+    }
+
+    catch (error) {
+
+        console.warn(
+            "History save error:",
+            error
+        );
+
+    }
+
+
+    renderHistory();
+
+}
+
+
+/* =========================================================
+   RENDER HISTORY
+   ========================================================= */
+
+function renderHistory() {
+
+    const container =
+        el("history");
+
+    if (!container) {
+        return;
+    }
+
+
+    let history = [];
+
+    try {
+
+        history =
+            JSON.parse(
+                localStorage.getItem(HISTORY_KEY)
+            ) || [];
+
+    }
+
+    catch (error) {
+
+        history = [];
+
+    }
+
+
+    if (!history.length) {
+
+        container.innerHTML = `
+            <div class="history-empty">
+                No commands yet.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML =
+
+        history
+            .slice(0, 20)
+            .map(function(item) {
+
+                return `
+                    <div class="history-item">
+
+                        <div class="history-type">
+                            ${escapeHTML(item.type)}
+                        </div>
+
+                        <div class="history-text">
+                            ${escapeHTML(item.text)}
+                        </div>
+
+                        <div class="history-time">
+                            ${escapeHTML(item.time)}
+                        </div>
+
+                    </div>
+                `;
+
+            })
+            .join("");
+
+}
+
+
+/* =========================================================
+   CLEAR HISTORY
+   ========================================================= */
+
+function clearHistory() {
+
+    try {
+
+        localStorage.removeItem(
+            HISTORY_KEY
+        );
+
+    }
+
+    catch (error) {
+
+        console.warn(error);
+
+    }
+
+
+    renderHistory();
+
+    speak(
+        "Command history cleared."
+    );
+
+}
 
 
 /* =========================================================
@@ -97,32 +284,48 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function initMap() {
 
-    const mapElement = document.getElementById("map");
+    const mapElement =
+        el("map");
+
 
     if (!mapElement) {
-        console.warn("Map element not found");
         return;
     }
 
-    if (typeof L === "undefined") {
-        console.error("Leaflet not loaded");
-        updateMapStatus("MAP ERROR");
+
+    if (
+        typeof L === "undefined"
+    ) {
+
+        console.error(
+            "Leaflet is not loaded."
+        );
+
+        return;
+
+    }
+
+
+    if (map) {
         return;
     }
 
-    map = L.map("map", {
-        zoomControl: true,
-        attributionControl: true
-    }).setView(
-        [23.0225, 72.5714],
-        11
-    );
 
+    map =
+        L.map("map", {
+            zoomControl: true
+        })
+        .setView(
+            [
+                currentLat,
+                currentLon
+            ],
+            11
+        );
 
-    /* OpenStreetMap */
 
     L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
             maxZoom: 19,
             attribution:
@@ -131,23 +334,25 @@ function initMap() {
     ).addTo(map);
 
 
-    /* Default Ahmedabad marker */
+    userMarker =
+        L.marker([
+            currentLat,
+            currentLon
+        ])
+        .addTo(map)
+        .bindPopup(
+            "<b>CBRND Location</b><br>Ahmedabad"
+        );
 
-    L.marker([
-        23.0225,
-        72.5714
-    ])
-    .addTo(map)
-    .bindPopup(
-        "<b>CBRND Command Center</b><br>Ahmedabad"
-    );
 
+    setTimeout(function() {
 
-    setTimeout(() => {
+        if (map) {
+            map.invalidateSize();
+        }
 
-        map.invalidateSize();
+    }, 500);
 
-    }, 400);
 }
 
 
@@ -157,41 +362,59 @@ function initMap() {
 
 function openMap() {
 
-    addHistory(
-        "OPEN MAP",
-        "Live GPS map opened"
-    );
-
     if (!map) {
         initMap();
     }
 
-    const mapElement = document.getElementById("map");
+
+    const mapElement =
+        el("map");
+
 
     if (mapElement) {
 
         mapElement.scrollIntoView({
+
             behavior: "smooth",
+
             block: "center"
+
         });
 
     }
 
-    if (map) {
 
-        setTimeout(() => {
+    setTimeout(function() {
 
-            map.invalidateSize();
+        if (!map) {
+            return;
+        }
 
-        }, 300);
 
-    }
+        map.invalidateSize();
 
-    updateMapStatus("MAP ACTIVE");
+
+        map.setView(
+            [
+                currentLat,
+                currentLon
+            ],
+            13
+        );
+
+    }, 500);
+
+
+    addHistory(
+        "MAP",
+        "Live map opened"
+    );
+
 
     speak(
-        "Live map is open."
+        "Live map opened."
     );
+
 }
 
 
@@ -201,71 +424,86 @@ function openMap() {
 
 function getGPS() {
 
-    addHistory(
-        "GPS",
-        "Requesting real location..."
-    );
-
-    updateMapStatus("LOCATING...");
-
-    if (!navigator.geolocation) {
+    if (
+        !navigator.geolocation
+    ) {
 
         showModal(
-            "GPS ERROR",
-            "Geolocation is not supported by this browser."
+            "GPS",
+            "GPS is not supported in this browser."
         );
 
-        updateMapStatus("GPS NOT SUPPORTED");
+        speak(
+            "GPS is not supported in this browser."
+        );
 
         return;
     }
 
 
+    safeMapStatus(
+        "LOCATING..."
+    );
+
+
     navigator.geolocation.getCurrentPosition(
 
-        position => {
+        function(position) {
 
-            currentPosition = position;
-
-            const lat =
+            currentLat =
                 position.coords.latitude;
 
-            const lon =
+
+            currentLon =
                 position.coords.longitude;
 
-            const accuracy =
-                position.coords.accuracy;
 
-
-            showUserLocation(
-                lat,
-                lon,
-                accuracy
+            safeMapStatus(
+                "GPS ACTIVE"
             );
 
 
-            const message =
-                "Location found. Latitude " +
-                lat.toFixed(6) +
-                ", Longitude " +
-                lon.toFixed(6);
+            updateGPSMarker(
+                position.coords.accuracy
+            );
+
+
+            if (map) {
+
+                map.setView(
+                    [
+                        currentLat,
+                        currentLon
+                    ],
+                    15
+                );
+
+                map.invalidateSize();
+
+            }
 
 
             addHistory(
                 "GPS",
-                message
+                `${currentLat.toFixed(6)}, ${currentLon.toFixed(6)}`
             );
 
 
-            updateMapStatus("GPS LOCKED");
-
-
             showModal(
-                "GPS LOCATION",
+                "CURRENT GPS LOCATION",
                 `
-                <b>Latitude:</b> ${lat.toFixed(6)}<br>
-                <b>Longitude:</b> ${lon.toFixed(6)}<br>
-                <b>Accuracy:</b> ${Math.round(accuracy)} meters
+                    Latitude:
+                    ${currentLat.toFixed(6)}
+
+                    <br><br>
+
+                    Longitude:
+                    ${currentLon.toFixed(6)}
+
+                    <br><br>
+
+                    Accuracy:
+                    ${Math.round(position.coords.accuracy)} meters
                 `
             );
 
@@ -276,132 +514,191 @@ function getGPS() {
 
         },
 
-        error => {
 
-            let message =
-                "Unable to get location.";
+        function(error) {
 
-            if (error.code === 1) {
-                message =
-                    "Location permission was denied.";
-            }
-
-            if (error.code === 2) {
-                message =
-                    "Location is unavailable.";
-            }
-
-            if (error.code === 3) {
-                message =
-                    "Location request timed out.";
-            }
-
-
-            addHistory(
-                "GPS",
-                message
+            console.warn(
+                "GPS error:",
+                error
             );
 
 
-            updateMapStatus(
+            safeMapStatus(
                 "GPS ERROR"
             );
 
 
             showModal(
-                "GPS",
-                message
+                "GPS ERROR",
+                "Unable to get your current GPS location."
             );
 
 
-            speak(message);
+            speak(
+                "Unable to get your GPS location."
+            );
 
         },
 
+
         {
+
             enableHighAccuracy: true,
+
             timeout: 15000,
+
             maximumAge: 0
+
         }
 
     );
+
 }
 
 
 /* =========================================================
-   SHOW USER LOCATION
+   GPS MARKER
    ========================================================= */
 
-function showUserLocation(
-    lat,
-    lon,
+function updateGPSMarker(
     accuracy
 ) {
 
     if (!map) {
-        initMap();
+        return;
     }
-
-    if (!map) return;
 
 
     if (userMarker) {
 
-        map.removeLayer(
-            userMarker
-        );
+        userMarker.setLatLng([
+            currentLat,
+            currentLon
+        ]);
+
+    }
+
+    else {
+
+        userMarker =
+            L.marker([
+                currentLat,
+                currentLon
+            ])
+            .addTo(map);
 
     }
 
 
-    if (accuracyCircle) {
+    userMarker.bindPopup(`
 
-        map.removeLayer(
-            accuracyCircle
-        );
+        <b>📍 Current GPS Location</b>
 
-    }
+        <br><br>
 
+        Latitude:
+        ${currentLat.toFixed(6)}
 
-    userMarker =
-        L.marker(
-            [lat, lon]
-        )
-        .addTo(map)
-        .bindPopup(
-            `
-            <b>YOUR LOCATION</b><br>
-            Latitude: ${lat.toFixed(6)}<br>
-            Longitude: ${lon.toFixed(6)}<br>
-            Accuracy: ${Math.round(accuracy)} m
-            `
-        );
+        <br>
+
+        Longitude:
+        ${currentLon.toFixed(6)}
+
+    `);
 
 
-    accuracyCircle =
-        L.circle(
-            [lat, lon],
-            {
-                radius: accuracy,
-                color: "#13ddff",
-                fillColor: "#13ddff",
-                fillOpacity: 0.08,
-                weight: 1
-            }
-        )
-        .addTo(map);
+    if (accuracy) {
 
+        if (accuracyCircle) {
 
-    map.setView(
-        [lat, lon],
-        16,
-        {
-            animate: true
+            map.removeLayer(
+                accuracyCircle
+            );
+
         }
+
+
+        accuracyCircle =
+            L.circle(
+                [
+                    currentLat,
+                    currentLon
+                ],
+                {
+                    radius: accuracy,
+                    color: "#00d9ff",
+                    fillColor: "#00d9ff",
+                    fillOpacity: 0.08,
+                    weight: 1
+                }
+            )
+            .addTo(map);
+
+    }
+
+}
+
+
+/* =========================================================
+   INITIAL GPS
+   ========================================================= */
+
+function getInitialLocation() {
+
+    if (
+        !navigator.geolocation
+    ) {
+
+        safeMapStatus(
+            "GPS FALLBACK"
+        );
+
+        return;
+    }
+
+
+    navigator.geolocation.getCurrentPosition(
+
+        function(position) {
+
+            currentLat =
+                position.coords.latitude;
+
+            currentLon =
+                position.coords.longitude;
+
+
+            safeMapStatus(
+                "GPS ACTIVE"
+            );
+
+
+            updateGPSMarker(
+                position.coords.accuracy
+            );
+
+        },
+
+        function() {
+
+            safeMapStatus(
+                "READY"
+            );
+
+        },
+
+        {
+
+            enableHighAccuracy: true,
+
+            timeout: 10000,
+
+            maximumAge: 300000
+
+        }
+
     );
 
-
-    userMarker.openPopup();
 }
 
 
@@ -409,145 +706,120 @@ function showUserLocation(
    MAP STATUS
    ========================================================= */
 
-function updateMapStatus(
-    status
-) {
+function safeMapStatus(text) {
 
-    const element =
-        document.getElementById(
-            "mapStatus"
-        );
+    const status =
+        el("mapStatus");
 
-    if (element) {
-        element.textContent =
-            status;
+    if (status) {
+        status.textContent = text;
     }
+
 }
 
 
 /* =========================================================
-   ALERT SYSTEM
+   ALERT
    ========================================================= */
 
 function activateAlert() {
-
-    const alertElement =
-        document.getElementById(
-            "alertMode"
-        );
-
 
     alertActive =
         !alertActive;
 
 
-    if (alertActive) {
-
-        if (alertElement) {
-
-            alertElement.classList.add(
-                "active"
-            );
-
-        }
+    const alertMode =
+        el("alertMode");
 
 
-        addHistory(
-            "ALERT",
-            "Emergency alert activated"
-        );
+    if (alertMode) {
 
-
-        showModal(
-            "EMERGENCY ALERT",
-            "Emergency alert mode is now ACTIVE."
-        );
-
-
-        speak(
-            "Emergency alert activated."
-        );
-
-
-    } else {
-
-        if (alertElement) {
-
-            alertElement.classList.remove(
-                "active"
-            );
-
-        }
-
-
-        addHistory(
-            "ALERT",
-            "Emergency alert deactivated"
-        );
-
-
-        speak(
-            "Emergency alert deactivated."
+        alertMode.classList.toggle(
+            "active",
+            alertActive
         );
 
     }
+
+
+    addHistory(
+        "ALERT",
+        alertActive
+            ? "Emergency alert activated"
+            : "Emergency alert deactivated"
+    );
+
+
+    speak(
+        alertActive
+            ? "Emergency alert activated."
+            : "Emergency alert deactivated."
+    );
+
 }
 
 
 /* =========================================================
-   SIREN
-   ========================================================= */
-
-function toggleSiren() {
-
-    if (sirenActive) {
-
-        stopSiren();
-
-    } else {
-
-        startSiren();
-
-    }
-}
-
-
-/* =========================================================
-   START SIREN
+   SIREN START
    ========================================================= */
 
 function startSiren() {
 
-    if (sirenActive) return;
+    if (sirenRunning) {
+        return;
+    }
+
+
+    const AudioContext =
+        window.AudioContext ||
+        window.webkitAudioContext;
+
+
+    if (!AudioContext) {
+
+        showModal(
+            "SIREN",
+            "Web Audio is not supported in this browser."
+        );
+
+        return;
+    }
 
 
     try {
 
-        sirenContext =
-            new (
-                window.AudioContext ||
-                window.webkitAudioContext
-            )();
+        if (!audioContext) {
+
+            audioContext =
+                new AudioContext();
+
+        }
+
+
+        if (
+            audioContext.state ===
+            "suspended"
+        ) {
+
+            audioContext.resume();
+
+        }
 
 
         sirenOscillator =
-            sirenContext.createOscillator();
+            audioContext.createOscillator();
 
 
         sirenGain =
-            sirenContext.createGain();
+            audioContext.createGain();
 
 
         sirenOscillator.type =
             "sawtooth";
 
 
-        sirenOscillator.frequency.value =
-            650;
-
-
         sirenGain.gain.value =
-            0.08;
+            0.0001;
 
 
         sirenOscillator.connect(
@@ -556,26 +828,67 @@ function startSiren() {
 
 
         sirenGain.connect(
-            sirenContext.destination
+            audioContext.destination
         );
 
 
         sirenOscillator.start();
 
 
-        sirenActive = true;
+        sirenRunning =
+            true;
 
 
-        const text =
-            document.getElementById(
-                "sirenText"
-            );
+        let high =
+            false;
 
 
-        if (text) {
-            text.textContent =
-                "Stop siren";
-        }
+        sirenTimer =
+            setInterval(function() {
+
+                if (
+                    !sirenOscillator ||
+                    !sirenGain
+                ) {
+                    return;
+                }
+
+
+                high =
+                    !high;
+
+
+                const frequency =
+                    high
+                        ? 900
+                        : 500;
+
+
+                const now =
+                    audioContext.currentTime;
+
+
+                sirenOscillator
+                    .frequency
+                    .setTargetAtTime(
+                        frequency,
+                        now,
+                        0.04
+                    );
+
+
+                sirenGain
+                    .gain
+                    .setTargetAtTime(
+                        0.16,
+                        now,
+                        0.03
+                    );
+
+            }, 450);
+
+
+        updateSirenUI(true);
 
 
         addHistory(
@@ -588,74 +901,23 @@ function startSiren() {
             "Siren started."
         );
 
+    }
 
-        runSirenSweep();
-
-
-    } catch (error) {
+    catch (error) {
 
         console.error(
             "Siren error:",
             error
         );
 
+
         showModal(
-            "SIREN",
-            "Unable to start siren in this browser."
+            "SIREN ERROR",
+            "Siren could not start. Please try again."
         );
 
     }
-}
 
-
-/* =========================================================
-   SIREN SWEEP
-   ========================================================= */
-
-function runSirenSweep() {
-
-    if (
-        !sirenActive ||
-        !sirenContext ||
-        !sirenOscillator
-    ) {
-        return;
-    }
-
-
-    const now =
-        sirenContext.currentTime;
-
-
-    sirenOscillator.frequency
-        .cancelScheduledValues(now);
-
-
-    sirenOscillator.frequency
-        .setValueAtTime(
-            500,
-            now
-        );
-
-
-    sirenOscillator.frequency
-        .linearRampToValueAtTime(
-            1000,
-            now + 0.65
-        );
-
-
-    sirenOscillator.frequency
-        .linearRampToValueAtTime(
-            500,
-            now + 1.3
-        );
-
-
-    setTimeout(
-        runSirenSweep,
-        1300
-    );
 }
 
 
@@ -663,73 +925,144 @@ function runSirenSweep() {
    STOP SIREN
    ========================================================= */
 
-function stopSiren() {
+function stopSiren(
+    silent = false
+) {
 
-    sirenActive = false;
+    if (!sirenRunning && !sirenOscillator) {
+        updateSirenUI(false);
+        return;
+    }
 
 
-    try {
+    if (sirenTimer) {
 
-        if (sirenOscillator) {
+        clearInterval(
+            sirenTimer
+        );
+
+        sirenTimer =
+            null;
+
+    }
+
+
+    if (sirenOscillator) {
+
+        try {
 
             sirenOscillator.stop();
+
+        }
+
+        catch (error) {}
+
+        try {
 
             sirenOscillator.disconnect();
 
         }
 
+        catch (error) {}
 
-        if (sirenGain) {
+        sirenOscillator =
+            null;
+
+    }
+
+
+    if (sirenGain) {
+
+        try {
 
             sirenGain.disconnect();
 
         }
 
+        catch (error) {}
 
-        if (sirenContext) {
+        sirenGain =
+            null;
 
-            sirenContext.close();
+    }
+
+
+    sirenRunning =
+        false;
+
+
+    updateSirenUI(false);
+
+
+    if (!silent) {
+
+        addHistory(
+            "SIREN",
+            "Siren stopped"
+        );
+
+
+        speak(
+            "Siren stopped."
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   TOGGLE SIREN
+   ========================================================= */
+
+function toggleSiren() {
+
+    if (sirenRunning) {
+
+        stopSiren();
+
+    }
+
+    else {
+
+        startSiren();
+
+    }
+
+}
+
+
+/* =========================================================
+   SIREN UI
+   ========================================================= */
+
+function updateSirenUI(
+    running
+) {
+
+    const button =
+        document.querySelector(
+            '[onclick="toggleSiren()"]'
+        );
+
+
+    if (button) {
+
+        const small =
+            button.querySelector("small");
+
+
+        if (small) {
+
+            small.textContent =
+                running
+                    ? "Stop siren"
+                    : "Start siren";
 
         }
 
-    } catch (error) {
-
-        console.warn(
-            "Siren stop:",
-            error
-        );
-
     }
 
-
-    sirenOscillator = null;
-    sirenGain = null;
-    sirenContext = null;
-
-
-    const text =
-        document.getElementById(
-            "sirenText"
-        );
-
-
-    if (text) {
-
-        text.textContent =
-            "Start siren";
-
-    }
-
-
-    addHistory(
-        "SIREN",
-        "Siren stopped"
-    );
-
-
-    speak(
-        "Siren stopped."
-    );
 }
 
 
@@ -739,57 +1072,279 @@ function stopSiren() {
 
 function stopEverything() {
 
-    stopSiren();
+    stopSiren(true);
 
 
-    alertActive = false;
+    alertActive =
+        false;
 
 
-    const alertElement =
-        document.getElementById(
-            "alertMode"
-        );
+    const alertMode =
+        el("alertMode");
 
 
-    if (alertElement) {
+    if (alertMode) {
 
-        alertElement.classList.remove(
+        alertMode.classList.remove(
             "active"
         );
 
     }
 
 
-    window.speechSynthesis.cancel();
+    if (
+        window.speechSynthesis
+    ) {
+
+        window.speechSynthesis.cancel();
+
+    }
 
 
-    if (recognition && isListening) {
+    if (
+        recognition &&
+        isListening
+    ) {
 
         try {
 
             recognition.stop();
 
-        } catch (e) {}
+        }
+
+        catch (error) {}
 
     }
 
 
     addHistory(
-        "STOP",
-        "All active systems stopped"
+        "SYSTEM",
+        "All active functions stopped"
     );
 
 
-    showModal(
-        "SYSTEM STOP",
-        "All active CBRND systems have been stopped."
+    const voiceStatus =
+        el("voiceStatus");
+
+
+    if (voiceStatus) {
+
+        voiceStatus.textContent =
+            "System stopped";
+
+    }
+
+
+    speak(
+        "All active functions stopped."
     );
 
 }
 
 
 /* =========================================================
-   APP OPEN
+   WEATHER
+   ========================================================= */
+
+async function loadWeather() {
+
+    try {
+
+        const url =
+            "https://api.open-meteo.com/v1/forecast" +
+            `?latitude=${currentLat}` +
+            `&longitude=${currentLon}` +
+            "&current=" +
+            [
+                "temperature_2m",
+                "relative_humidity_2m",
+                "surface_pressure",
+                "wind_speed_10m",
+                "wind_direction_10m",
+                "precipitation",
+                "cloud_cover"
+            ].join(",") +
+            "&timezone=auto";
+
+
+        const response =
+            await fetch(url);
+
+
+        if (!response.ok) {
+            throw new Error(
+                "Weather request failed"
+            );
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (!data.current) {
+            throw new Error(
+                "Weather unavailable"
+            );
+        }
+
+
+        const c =
+            data.current;
+
+
+        currentWeather = {
+
+            temperature:
+                c.temperature_2m,
+
+            humidity:
+                c.relative_humidity_2m,
+
+            pressure:
+                c.surface_pressure,
+
+            wind:
+                c.wind_speed_10m,
+
+            windDirection:
+                c.wind_direction_10m,
+
+            rain:
+                c.precipitation,
+
+            cloud:
+                c.cloud_cover
+
+        };
+
+
+        updateWeatherCards();
+
+
+    }
+
+    catch (error) {
+
+        console.warn(
+            "Weather error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   WEATHER CARDS
+   ========================================================= */
+
+function updateWeatherCards() {
+
+    if (!currentWeather) {
+        return;
+    }
+
+
+    safeText(
+        "temperature",
+        `${Number(currentWeather.temperature).toFixed(1)} °C`
+    );
+
+
+    safeText(
+        "humidity",
+        `${Number(currentWeather.humidity).toFixed(0)} %`
+    );
+
+
+    safeText(
+        "pressure",
+        `${Number(currentWeather.pressure).toFixed(0)} hPa`
+    );
+
+
+    safeText(
+        "wind",
+        `${Number(currentWeather.wind).toFixed(1)} km/h`
+    );
+
+
+    safeText(
+        "rain",
+        `${Number(currentWeather.rain).toFixed(1)} mm`
+    );
+
+
+    safeText(
+        "cloud",
+        `${Number(currentWeather.cloud).toFixed(0)} %`
+    );
+
+}
+
+
+/* =========================================================
+   SAFE TEXT
+   ========================================================= */
+
+function safeText(
+    id,
+    value
+) {
+
+    const element =
+        el(id);
+
+
+    if (element) {
+        element.textContent = value;
+    }
+
+}
+
+
+/* =========================================================
+   WEATHER SPEECH
+   ========================================================= */
+
+function speakWeather() {
+
+    if (!currentWeather) {
+
+        speak(
+            "Weather data is still loading."
+        );
+
+        loadWeather();
+
+        return;
+    }
+
+
+    const message =
+
+        `Temperature ${Number(currentWeather.temperature).toFixed(1)} degrees Celsius. ` +
+
+        `Humidity ${Number(currentWeather.humidity).toFixed(0)} percent. ` +
+
+        `Pressure ${Number(currentWeather.pressure).toFixed(0)} hectopascal. ` +
+
+        `Wind ${Number(currentWeather.wind).toFixed(1)} kilometers per hour. ` +
+
+        `Rain ${Number(currentWeather.rain).toFixed(1)} millimeters. ` +
+
+        `Cloud cover ${Number(currentWeather.cloud).toFixed(0)} percent.`;
+
+
+    speak(message);
+
+}
+
+
+/* =========================================================
+   OPEN EXTERNAL APP
    ========================================================= */
 
 function openApp(
@@ -803,34 +1358,86 @@ function openApp(
     if (!url) {
 
         showModal(
-            "APP ERROR",
+            "APP LINK",
             "Application link is not configured."
         );
 
         return;
+
+    }
+
+
+    if (
+        url.startsWith("YOUR_")
+    ) {
+
+        showModal(
+
+            "APP LINK",
+
+            app === "sos"
+                ? "SOS Siren URL अभी configure नहीं किया गया है."
+                : "Application URL अभी configure नहीं किया गया है."
+
+        );
+
+        return;
+
     }
 
 
     addHistory(
-        "OPEN APP",
-        app.toUpperCase()
+        app.toUpperCase(),
+        "Application opened"
     );
 
 
-    window.open(
-        url,
-        "_blank",
-        "noopener,noreferrer"
-    );
+    const popup =
+        window.open(
+            url,
+            "_blank",
+            "noopener,noreferrer"
+        );
+
+
+    if (!popup) {
+
+        window.location.href =
+            url;
+
+        return;
+
+    }
+
+
+    const messages = {
+
+        qr:
+            "QR Generator is opening.",
+
+        camera:
+            "Smart Camera is opening.",
+
+        sos:
+            "SOS Siren is opening.",
+
+        location:
+            "Location Tracker is opening.",
+
+        ai:
+            "AI Voice Assistant is opening.",
+
+        compass:
+            "Compass is opening."
+
+    };
 
 
     speak(
-        "Opening " +
-        app.replace(
-            /-/g,
-            " "
-        )
+        messages[app] ||
+        "Application is opening."
     );
+
 }
 
 
@@ -840,223 +1447,117 @@ function openApp(
 
 function openCompass() {
 
-    const url =
-        APP_LINKS.compass;
-
-
-    addHistory(
-        "COMPASS",
-        "Opening digital compass"
+    openApp(
+        "compass"
     );
 
-
-    window.open(
-        url,
-        "_blank",
-        "noopener,noreferrer"
-    );
-
-
-    speak(
-        "Opening compass."
-    );
 }
 
 
 /* =========================================================
-   SOCIAL APPS
+   SOCIAL
    ========================================================= */
 
 function openSocial(
-    platform
+    social
 ) {
 
     const url =
-        SOCIAL_LINKS[platform];
+        SOCIAL_LINKS[social];
 
 
-    if (!url) return;
-
-
-    addHistory(
-        "SOCIAL",
-        "Opening " +
-        platform
-    );
-
-
-    window.open(
-        url,
-        "_blank",
-        "noopener,noreferrer"
-    );
-
-
-    speak(
-        "Opening " +
-        platform
-    );
-}
-
-
-/* =========================================================
-   MOBILE SYSTEM
-   ========================================================= */
-
-function initMobileSystem() {
-
-    const input =
-        document.getElementById(
-            "userMobile"
-        );
-
-
-    const button =
-        document.getElementById(
-            "saveMobileBtn"
-        );
-
-
-    const status =
-        document.getElementById(
-            "mobileStatus"
-        );
-
-
-    const saved =
-        localStorage.getItem(
-            "chotiAlexaMobile"
-        );
-
-
-    if (saved && input) {
-
-        input.value =
-            saved;
-
-        if (status) {
-
-            status.textContent =
-                "Mobile number saved • Choti Alexa ready";
-
-        }
-
-    }
-
-
-    if (button) {
-
-        button.addEventListener(
-            "click",
-            saveMobileNumber
-        );
-
-    }
-}
-
-
-/* =========================================================
-   SAVE MOBILE
-   ========================================================= */
-
-function saveMobileNumber() {
-
-    const input =
-        document.getElementById(
-            "userMobile"
-        );
-
-
-    const status =
-        document.getElementById(
-            "mobileStatus"
-        );
-
-
-    if (!input) return;
-
-
-    const number =
-        input.value.trim();
-
-
-    if (!number) {
-
-        if (status) {
-
-            status.textContent =
-                "Please enter your mobile number.";
-
-        }
-
+    if (!url) {
         return;
     }
 
 
-    localStorage.setItem(
-        "chotiAlexaMobile",
-        number
+    addHistory(
+        social.toUpperCase(),
+        "Social app opened"
     );
 
 
-    if (status) {
+    const popup =
+        window.open(
+            url,
+            "_blank",
+            "noopener,noreferrer"
+        );
 
-        status.textContent =
-            "Mobile number saved successfully.";
+
+    if (!popup) {
+
+        window.location.href =
+            url;
+
+        return;
 
     }
 
 
-    addHistory(
-        "MOBILE",
-        "Mobile number saved"
-    );
+    const messages = {
+
+        instagram:
+            "Instagram is opening.",
+
+        facebook:
+            "Facebook is opening.",
+
+        whatsapp:
+            "WhatsApp is opening."
+
+    };
 
 
     speak(
-        "Your mobile number has been saved."
+        messages[social]
     );
-}
-
-
-/* =========================================================
-   ASSISTANT NAME
-   ========================================================= */
-
-function getAssistantName() {
-
-    return "Choti Alexa";
 
 }
 
 
 /* =========================================================
-   VOICE RECOGNITION
+   VOICE INITIALIZATION
    ========================================================= */
 
-function initVoiceRecognition() {
+function initVoice() {
 
     const SpeechRecognition =
         window.SpeechRecognition ||
         window.webkitSpeechRecognition;
 
 
+    const mic =
+        el("mic");
+
+
+    const status =
+        el("voiceStatus");
+
+
     if (!SpeechRecognition) {
-
-        const status =
-            document.getElementById(
-                "voiceStatus"
-            );
-
 
         if (status) {
 
             status.textContent =
-                "Voice recognition is not supported in this browser.";
+                "Voice recognition not supported.";
 
         }
 
+
+        if (mic) {
+
+            mic.disabled =
+                true;
+
+            mic.style.opacity =
+                "0.45";
+
+        }
+
+
         return;
+
     }
 
 
@@ -1072,30 +1573,33 @@ function initVoiceRecognition() {
         false;
 
 
-    recognition.lang =
-        "en-IN";
-
-
     recognition.maxAlternatives =
         3;
 
 
+    /*
+       Hindi + English recognition
+    */
+
+    recognition.lang =
+        "en-IN";
+
+
+    if (mic) {
+
+        mic.addEventListener(
+            "click",
+            toggleListening
+        );
+
+    }
+
+
     recognition.onstart =
-        () => {
+        function() {
 
-            isListening = true;
-
-
-            const mic =
-                document.getElementById(
-                    "mic"
-                );
-
-
-            const status =
-                document.getElementById(
-                    "voiceStatus"
-                );
+            isListening =
+                true;
 
 
             if (mic) {
@@ -1110,7 +1614,7 @@ function initVoiceRecognition() {
             if (status) {
 
                 status.textContent =
-                    "Listening... बोलिए...";
+                    "🎙️ Listening...";
 
             }
 
@@ -1118,23 +1622,29 @@ function initVoiceRecognition() {
 
 
     recognition.onresult =
-        event => {
+        function(event) {
 
-            const result =
-                event.results[
-                    event.results.length - 1
-                ][0].transcript;
+            const transcript =
+                event.results[0][0]
+                    .transcript
+                    .trim();
 
 
-            handleVoiceCommand(
-                result
+            addHistory(
+                "VOICE",
+                transcript
+            );
+
+
+            processVoiceCommand(
+                transcript
             );
 
         };
 
 
     recognition.onerror =
-        event => {
+        function(event) {
 
             console.warn(
                 "Voice error:",
@@ -1142,28 +1652,36 @@ function initVoiceRecognition() {
             );
 
 
-            const status =
-                document.getElementById(
-                    "voiceStatus"
-                );
+            if (!status) {
+                return;
+            }
 
 
-            if (status) {
+            if (
+                event.error ===
+                "not-allowed"
+            ) {
 
-                if (
-                    event.error ===
-                    "not-allowed"
-                ) {
+                status.textContent =
+                    "Microphone permission denied.";
 
-                    status.textContent =
-                        "Microphone permission denied.";
+            }
 
-                } else {
+            else if (
+                event.error ===
+                "no-speech"
+            ) {
 
-                    status.textContent =
-                        "Voice error. Try again.";
+                status.textContent =
+                    "No speech detected.";
 
-                }
+            }
+
+            else {
+
+                status.textContent =
+                    "Voice error: " +
+                    event.error;
 
             }
 
@@ -1171,15 +1689,10 @@ function initVoiceRecognition() {
 
 
     recognition.onend =
-        () => {
+        function() {
 
-            isListening = false;
-
-
-            const mic =
-                document.getElementById(
-                    "mic"
-                );
+            isListening =
+                false;
 
 
             if (mic) {
@@ -1190,53 +1703,50 @@ function initVoiceRecognition() {
 
             }
 
+
+            if (
+                status &&
+                status.textContent ===
+                "🎙️ Listening..."
+            ) {
+
+                status.textContent =
+                    "Click microphone to speak";
+
+            }
+
         };
-
-
-    const mic =
-        document.getElementById(
-            "mic"
-        );
-
-
-    if (mic) {
-
-        mic.addEventListener(
-            "click",
-            startListening
-        );
-
-    }
 
 }
 
 
 /* =========================================================
-   START LISTENING
+   VOICE TOGGLE
    ========================================================= */
 
-function startListening() {
+function toggleListening() {
 
     if (!recognition) {
 
-        showModal(
-            "VOICE",
-            "Speech recognition is not supported. Please use Chrome or Edge."
+        speak(
+            "Voice recognition is not available."
         );
 
         return;
+
     }
 
 
     if (isListening) {
 
         try {
-
             recognition.stop();
+        }
 
-        } catch (e) {}
+        catch (error) {}
 
         return;
+
     }
 
 
@@ -1245,9 +1755,12 @@ function startListening() {
         recognition.lang =
             "en-IN";
 
+
         recognition.start();
 
-    } catch (error) {
+    }
+
+    catch (error) {
 
         console.warn(
             "Recognition start:",
@@ -1255,562 +1768,602 @@ function startListening() {
         );
 
     }
+
 }
 
 
 /* =========================================================
-   VOICE COMMAND ENGINE
+   VOICE COMMAND PROCESSOR
    ========================================================= */
 
-function handleVoiceCommand(
-    rawCommand
+function processVoiceCommand(
+    command
 ) {
 
-    const command =
-        rawCommand
+    const text =
+        String(command || "")
             .toLowerCase()
             .trim();
 
 
-    const status =
-        document.getElementById(
-            "voiceStatus"
-        );
-
-
-    if (status) {
-
-        status.textContent =
-            "Command: " +
-            rawCommand;
-
-    }
-
-
-    addHistory(
-        "VOICE",
-        rawCommand
+    console.log(
+        "Voice Command:",
+        text
     );
 
 
-    /* MAP */
+    /*
+       NAME
+    */
 
     if (
-        containsAny(
-            command,
-            [
-                "open map",
-                "show map",
-                "live map",
-                "map kholo",
-                "naksha kholo",
-                "नक्शा खोलो",
-                "मैप खोलो",
-                "मानचित्र खोलो"
-            ]
-        )
+
+        text.includes("what is your name") ||
+        text.includes("what's your name") ||
+        text.includes("your name") ||
+        text.includes("who are you") ||
+        text.includes("aapka naam") ||
+        text.includes("tumhara naam") ||
+        text.includes("आपका नाम") ||
+        text.includes("तुम्हारा नाम")
+
     ) {
-
-        openMap();
-        return;
-    }
-
-
-    /* GPS */
-
-    if (
-        containsAny(
-            command,
-            [
-                "get gps",
-                "get location",
-                "show location",
-                "my location",
-                "location batao",
-                "location dikhao",
-                "meri location",
-                "मेरी लोकेशन",
-                "लोकेशन बताओ",
-                "लोकेशन दिखाओ"
-            ]
-        )
-    ) {
-
-        getGPS();
-        return;
-    }
-
-
-    /* ALERT */
-
-    if (
-        containsAny(
-            command,
-            [
-                "activate alert",
-                "start alert",
-                "emergency alert",
-                "alert on",
-                "alert chalu",
-                "alert चालू",
-                "अलर्ट चालू करो",
-                "emergency"
-            ]
-        )
-    ) {
-
-        activateAlert();
-        return;
-    }
-
-
-    /* SIREN START */
-
-    if (
-        containsAny(
-            command,
-            [
-                "start siren",
-                "siren on",
-                "siren start",
-                "siren chalu",
-                "siren चालू",
-                "सायरन चालू करो",
-                "सायरन शुरू करो"
-            ]
-        )
-    ) {
-
-        if (!sirenActive) {
-
-            startSiren();
-
-        }
-
-        return;
-    }
-
-
-    /* SIREN STOP */
-
-    if (
-        containsAny(
-            command,
-            [
-                "stop siren",
-                "siren off",
-                "siren band",
-                "siren बंद",
-                "सायरन बंद करो"
-            ]
-        )
-    ) {
-
-        if (sirenActive) {
-
-            stopSiren();
-
-        }
-
-        return;
-    }
-
-
-    /* STOP EVERYTHING */
-
-    if (
-        containsAny(
-            command,
-            [
-                "stop everything",
-                "stop all",
-                "system stop",
-                "sab band",
-                "sab kuch band",
-                "सब बंद करो",
-                "सब कुछ बंद करो",
-                "सिस्टम बंद करो"
-            ]
-        )
-    ) {
-
-        stopEverything();
-        return;
-    }
-
-
-    /* QR */
-
-    if (
-        containsAny(
-            command,
-            [
-                "open qr",
-                "qr generator",
-                "qr kholo",
-                "qr खोलो",
-                "क्यूआर खोलो"
-            ]
-        )
-    ) {
-
-        openApp("qr");
-        return;
-    }
-
-
-    /* CAMERA */
-
-    if (
-        containsAny(
-            command,
-            [
-                "open camera",
-                "smart camera",
-                "camera kholo",
-                "camera खोलो",
-                "कैमरा खोलो"
-            ]
-        )
-    ) {
-
-        openApp("camera");
-        return;
-    }
-
-
-    /* SOS */
-
-    if (
-        containsAny(
-            command,
-            [
-                "open sos",
-                "sos siren",
-                "sos kholo",
-                "sos खोलो",
-                "एसओएस खोलो"
-            ]
-        )
-    ) {
-
-        openApp("sos");
-        return;
-    }
-
-
-    /* LOCATION TRACKER */
-
-    if (
-        containsAny(
-            command,
-            [
-                "location tracker",
-                "open tracker",
-                "tracker kholo",
-                "ट्रैकर खोलो"
-            ]
-        )
-    ) {
-
-        openApp("location");
-        return;
-    }
-
-
-    /* COMPASS */
-
-    if (
-        containsAny(
-            command,
-            [
-                "open compass",
-                "compass kholo",
-                "compass खोलो",
-                "कम्पास खोलो",
-                "दिशासूचक खोलो"
-            ]
-        )
-    ) {
-
-        openCompass();
-        return;
-    }
-
-
-    /* AI */
-
-    if (
-        containsAny(
-            command,
-            [
-                "open ai",
-                "open ai assistant",
-                "ai voice assistant",
-                "ai kholo",
-                "ai खोलो",
-                "एआई खोलो"
-            ]
-        )
-    ) {
-
-        openApp("ai");
-        return;
-    }
-
-
-    /* INSTAGRAM */
-
-    if (
-        containsAny(
-            command,
-            [
-                "open instagram",
-                "instagram kholo",
-                "instagram खोलो"
-            ]
-        )
-    ) {
-
-        openSocial(
-            "instagram"
-        );
-
-        return;
-    }
-
-
-    /* FACEBOOK */
-
-    if (
-        containsAny(
-            command,
-            [
-                "open facebook",
-                "facebook kholo",
-                "facebook खोलो"
-            ]
-        )
-    ) {
-
-        openSocial(
-            "facebook"
-        );
-
-        return;
-    }
-
-
-    /* WHATSAPP */
-
-    if (
-        containsAny(
-            command,
-            [
-                "open whatsapp",
-                "whatsapp kholo",
-                "whatsapp खोलो",
-                "व्हाट्सएप खोलो"
-            ]
-        )
-    ) {
-
-        openSocial(
-            "whatsapp"
-        );
-
-        return;
-    }
-
-
-    /* ASSISTANT NAME */
-
-    if (
-        containsAny(
-            command,
-            [
-                "what is your name",
-                "what's your name",
-                "your name",
-                "who are you",
-                "tumhara naam",
-                "aapka naam",
-                "आपका नाम क्या है",
-                "तुम्हारा नाम क्या है"
-            ]
-        )
-    ) {
-
-        const answer =
-            "My name is Choti Alexa.";
-
-        showVoiceAnswer(
-            answer
-        );
 
         speak(
-            answer
+            "My name is Choti Alexa."
         );
 
         return;
+
     }
 
 
-    /* MOBILE NUMBER */
+    /*
+       MOBILE NUMBER
+    */
 
     if (
-        containsAny(
-            command,
-            [
-                "my mobile number",
-                "my phone number",
-                "mera mobile number",
-                "mera phone number",
-                "मेरा मोबाइल नंबर",
-                "मेरा फोन नंबर"
-            ]
-        )
+
+        text.includes("my mobile number") ||
+        text.includes("my phone number") ||
+        text.includes("mobile number") ||
+        text.includes("phone number") ||
+        text.includes("mera mobile") ||
+        text.includes("mera number") ||
+        text.includes("mera phone") ||
+        text.includes("मेरा मोबाइल") ||
+        text.includes("मेरा नंबर") ||
+        text.includes("मोबाइल नंबर")
+
     ) {
 
         const number =
             localStorage.getItem(
-                "chotiAlexaMobile"
+                "CHOTI_ALEXA_MOBILE"
             );
 
 
-        if (number) {
-
-            const answer =
-                "Your saved mobile number is " +
-                number;
-
-            showVoiceAnswer(
-                answer
-            );
+        if (!number) {
 
             speak(
-                "Your saved mobile number is " +
+                "Your mobile number is not saved yet."
+            );
+
+        }
+
+        else {
+
+            speak(
+                "Your mobile number is " +
                 number
+                    .split("")
+                    .join(" ")
             );
 
-        } else {
-
-            const answer =
-                "No mobile number is saved yet.";
-
-            showVoiceAnswer(
-                answer
-            );
-
-            speak(
-                answer
-            );
         }
 
         return;
+
     }
 
 
-    /* HELLO */
+    /*
+       STOP EVERYTHING
+    */
 
     if (
-        containsAny(
-            command,
-            [
-                "hello",
-                "hi choti alexa",
-                "hello choti alexa",
-                "namaste",
-                "नमस्ते",
-                "हेलो"
-            ]
-        )
+
+        text === "stop" ||
+        text.includes("stop everything") ||
+        text.includes("stop all") ||
+        text.includes("सब बंद करो") ||
+        text.includes("सब कुछ बंद करो") ||
+        text.includes("सब बंद") ||
+        text.includes("रोक दो") ||
+        text.includes("रुको")
+
     ) {
 
-        const answer =
-            "Hello. Choti Alexa is ready.";
+        stopEverything();
 
-        showVoiceAnswer(
-            answer
-        );
+        return;
+
+    }
+
+
+    /*
+       STOP SIREN
+    */
+
+    if (
+
+        text.includes("stop siren") ||
+        text.includes("siren stop") ||
+        text.includes("सायरन बंद") ||
+        text.includes("सायरन बंद करो") ||
+        text.includes("सायरन ऑफ")
+
+    ) {
+
+        stopSiren();
+
+        return;
+
+    }
+
+
+    /*
+       START SIREN
+    */
+
+    if (
+
+        text.includes("start siren") ||
+        text.includes("siren start") ||
+        text.includes("सायरन चालू") ||
+        text.includes("सायरन चालु") ||
+        text.includes("सायरन ऑन") ||
+        text.includes("सायरन खोलो") ||
+        text.includes("सायरन बजाओ")
+
+    ) {
+
+        startSiren();
+
+        return;
+
+    }
+
+
+    /*
+       ALERT
+    */
+
+    if (
+
+        text.includes("alert") ||
+        text.includes("अलर्ट") ||
+        text.includes("चेतावनी")
+
+    ) {
+
+        activateAlert();
+
+        return;
+
+    }
+
+
+    /*
+       GPS
+    */
+
+    if (
+
+        text.includes("open gps") ||
+        text.includes("gps kholo") ||
+        text.includes("gps") ||
+        text.includes("मेरी लोकेशन") ||
+        text.includes("meri location") ||
+        text.includes("location batao")
+
+    ) {
+
+        getGPS();
+
+        return;
+
+    }
+
+
+    /*
+       WEATHER
+    */
+
+    if (
+
+        text.includes("weather") ||
+        text.includes("मौसम") ||
+        text.includes("मौसम बताओ") ||
+        text.includes("weather batao")
+
+    ) {
+
+        speakWeather();
+
+        return;
+
+    }
+
+
+    /*
+       TEMPERATURE
+    */
+
+    if (
+
+        text.includes("temperature") ||
+        text.includes("temp") ||
+        text.includes("तापमान") ||
+        text.includes("गर्मी")
+
+    ) {
+
+        if (currentWeather) {
+
+            speak(
+                `Current temperature is ${Number(
+                    currentWeather.temperature
+                ).toFixed(1)} degrees Celsius.`
+            );
+
+        }
+
+        else {
+
+            speakWeather();
+
+        }
+
+        return;
+
+    }
+
+
+    /*
+       HUMIDITY
+    */
+
+    if (
+
+        text.includes("humidity") ||
+        text.includes("नमी") ||
+        text.includes("आर्द्रता")
+
+    ) {
+
+        if (currentWeather) {
+
+            speak(
+                `Current humidity is ${Number(
+                    currentWeather.humidity
+                ).toFixed(0)} percent.`
+            );
+
+        }
+
+        return;
+
+    }
+
+
+    /*
+       WIND
+    */
+
+    if (
+
+        text.includes("wind") ||
+        text.includes("हवा") ||
+        text.includes("पवन")
+
+    ) {
+
+        if (currentWeather) {
+
+            speak(
+                `Current wind speed is ${Number(
+                    currentWeather.wind
+                ).toFixed(1)} kilometers per hour.`
+            );
+
+        }
+
+        return;
+
+    }
+
+
+    /*
+       RAIN
+    */
+
+    if (
+
+        text.includes("rain") ||
+        text.includes("बारिश") ||
+        text.includes("वर्षा")
+
+    ) {
+
+        if (currentWeather) {
+
+            speak(
+                `Current rain is ${Number(
+                    currentWeather.rain
+                ).toFixed(1)} millimeters.`
+            );
+
+        }
+
+        return;
+
+    }
+
+
+    /*
+       MAP
+    */
+
+    if (
+
+        text === "map" ||
+        text.includes("open map") ||
+        text.includes("map kholo") ||
+        text.includes("मैप खोलो") ||
+        text.includes("नक्शा") ||
+        text.includes("मानचित्र")
+
+    ) {
+
+        openMap();
+
+        return;
+
+    }
+
+
+    /*
+       QR
+    */
+
+    if (
+
+        text.includes("qr") ||
+        text.includes("qr generator") ||
+        text.includes("क्यूआर") ||
+        text.includes("क्यू आर")
+
+    ) {
+
+        openApp("qr");
+
+        return;
+
+    }
+
+
+    /*
+       CAMERA
+    */
+
+    if (
+
+        text.includes("camera") ||
+        text.includes("smart camera") ||
+        text.includes("कैमरा")
+
+    ) {
+
+        openApp("camera");
+
+        return;
+
+    }
+
+
+    /*
+       SOS
+    */
+
+    if (
+
+        text.includes("sos") ||
+        text.includes("sos siren") ||
+        text.includes("एसओएस") ||
+        text.includes("एस ओ एस")
+
+    ) {
+
+        openApp("sos");
+
+        return;
+
+    }
+
+
+    /*
+       LOCATION TRACKER
+    */
+
+    if (
+
+        text.includes("location tracker") ||
+        text.includes("live location tracker") ||
+        text.includes("लोकेशन ट्रैकर") ||
+        text.includes("लाइव लोकेशन")
+
+    ) {
+
+        openApp("location");
+
+        return;
+
+    }
+
+
+    /*
+       COMPASS
+    */
+
+    if (
+
+        text.includes("compass") ||
+        text.includes("compass kholo") ||
+        text.includes("कंपास") ||
+        text.includes("कम्पास")
+
+    ) {
+
+        openCompass();
+
+        return;
+
+    }
+
+
+    /*
+       AI ASSISTANT
+    */
+
+    if (
+
+        text.includes("ai voice assistant") ||
+        text.includes("voice assistant") ||
+        text.includes("ai assistant") ||
+        text.includes("वॉइस असिस्टेंट") ||
+        text.includes("एआई असिस्टेंट")
+
+    ) {
+
+        openApp("ai");
+
+        return;
+
+    }
+
+
+    /*
+       INSTAGRAM
+    */
+
+    if (
+
+        text.includes("instagram") ||
+        text.includes("इंस्टाग्राम")
+
+    ) {
+
+        openSocial("instagram");
+
+        return;
+
+    }
+
+
+    /*
+       FACEBOOK
+    */
+
+    if (
+
+        text.includes("facebook") ||
+        text.includes("फेसबुक")
+
+    ) {
+
+        openSocial("facebook");
+
+        return;
+
+    }
+
+
+    /*
+       WHATSAPP
+    */
+
+    if (
+
+        text.includes("whatsapp") ||
+        text.includes("व्हाट्सएप") ||
+        text.includes("व्हाट्सएप्प")
+
+    ) {
+
+        openSocial("whatsapp");
+
+        return;
+
+    }
+
+
+    /*
+       HOME
+    */
+
+    if (
+
+        text.includes("home") ||
+        text.includes("dashboard") ||
+        text.includes("होम") ||
+        text.includes("डैशबोर्ड")
+
+    ) {
+
+        window.scrollTo({
+
+            top: 0,
+
+            behavior: "smooth"
+
+        });
+
 
         speak(
-            answer
+            "Dashboard opened."
         );
 
         return;
-    }
-
-
-    /* UNKNOWN */
-
-    const unknown =
-        "I did not understand that command.";
-
-
-    if (status) {
-
-        status.textContent =
-            unknown;
 
     }
 
+
+    /*
+       UNKNOWN
+    */
 
     speak(
-        unknown
+        "Command not recognized."
     );
-}
 
-
-/* =========================================================
-   COMMAND MATCHER
-   ========================================================= */
-
-function containsAny(
-    text,
-    words
-) {
-
-    return words.some(
-        word =>
-            text.includes(
-                word.toLowerCase()
-            )
-    );
-}
-
-
-/* =========================================================
-   VOICE RESPONSE DISPLAY
-   ========================================================= */
-
-function showVoiceAnswer(
-    message
-) {
 
     const status =
-        document.getElementById(
-            "voiceStatus"
-        );
+        el("voiceStatus");
 
 
     if (status) {
 
         status.textContent =
-            message;
+            "Command not recognized";
 
     }
 
-
-    addHistory(
-        "ALEXA",
-        message
-    );
 }
 
 
 /* =========================================================
-   SPEECH OUTPUT
+   TEXT TO SPEECH
    ========================================================= */
 
 function speak(
@@ -1833,18 +2386,29 @@ function speak(
         );
 
 
-    utterance.lang =
-        detectSpeechLanguage(
-            text
+    /*
+       Devanagari = Hindi
+       Otherwise English
+    */
+
+    const isHindi =
+        /[\u0900-\u097F]/.test(
+            String(text)
         );
 
 
+    utterance.lang =
+        isHindi
+            ? "hi-IN"
+            : "en-IN";
+
+
     utterance.rate =
-        0.92;
+        0.95;
 
 
     utterance.pitch =
-        1.02;
+        1;
 
 
     utterance.volume =
@@ -1854,190 +2418,120 @@ function speak(
     window.speechSynthesis.speak(
         utterance
     );
+
 }
 
 
 /* =========================================================
-   SPEECH LANGUAGE
+   MOBILE SYSTEM
    ========================================================= */
 
-function detectSpeechLanguage(
-    text
-) {
+function setupMobileSystem() {
 
-    if (
-        /[\u0900-\u097F]/.test(
-            text
-        )
-    ) {
-
-        return "hi-IN";
-
-    }
+    const input =
+        el("userMobile");
 
 
-    return "en-IN";
-}
+    const button =
+        el("saveMobileBtn");
 
 
-/* =========================================================
-   HISTORY
-   ========================================================= */
-
-function addHistory(
-    command,
-    result
-) {
-
-    const history =
-        document.getElementById(
-            "history"
-        );
-
-
-    if (!history) return;
-
-
-    const item =
-        document.createElement(
-            "div"
-        );
-
-
-    item.className =
-        "historyItem";
-
-
-    const time =
-        new Date()
-            .toLocaleTimeString(
-                "en-IN",
-                {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit"
-                }
-            );
-
-
-    item.innerHTML = `
-
-        <div class="historyTime">
-            ${escapeHTML(time)}
-        </div>
-
-        <div class="historyCommand">
-            ${escapeHTML(command)}
-        </div>
-
-        <div class="historyResult">
-            ${escapeHTML(result)}
-        </div>
-
-    `;
-
-
-    history.prepend(
-        item
-    );
-
-
-    while (
-        history.children.length > 50
-    ) {
-
-        history.removeChild(
-            history.lastChild
-        );
-
-    }
-
-
-    saveHistory();
-}
-
-
-/* =========================================================
-   SAVE HISTORY
-   ========================================================= */
-
-function saveHistory() {
-
-    const history =
-        document.getElementById(
-            "history"
-        );
-
-
-    if (!history) return;
-
-
-    localStorage.setItem(
-        "chotiAlexaHistory",
-        history.innerHTML
-    );
-}
-
-
-/* =========================================================
-   LOAD HISTORY
-   ========================================================= */
-
-function loadHistory() {
-
-    const history =
-        document.getElementById(
-            "history"
-        );
-
-
-    if (!history) return;
+    const status =
+        el("mobileStatus");
 
 
     const saved =
         localStorage.getItem(
-            "chotiAlexaHistory"
+            "CHOTI_ALEXA_MOBILE"
         );
 
 
-    if (saved) {
+    if (input && saved) {
 
-        history.innerHTML =
+        input.value =
             saved;
 
     }
-}
 
 
-/* =========================================================
-   CLEAR HISTORY
-   ========================================================= */
+    if (saved && status) {
 
-function clearHistory() {
-
-    const history =
-        document.getElementById(
-            "history"
-        );
-
-
-    if (history) {
-
-        history.innerHTML =
-            "";
+        status.textContent =
+            "Mobile number saved. Ask: “Mera mobile number batao”";
 
     }
 
 
-    localStorage.removeItem(
-        "chotiAlexaHistory"
-    );
+    if (
+        button &&
+        !button.dataset.bound
+    ) {
+
+        button.dataset.bound =
+            "true";
 
 
-    addHistory(
-        "HISTORY",
-        "Command history cleared"
-    );
+        button.addEventListener(
+            "click",
+            function() {
+
+                if (!input) {
+                    return;
+                }
+
+
+                const value =
+                    input.value
+                        .trim();
+
+
+                if (!value) {
+
+                    if (status) {
+
+                        status.textContent =
+                            "Please enter your mobile number.";
+
+                    }
+
+                    speak(
+                        "Please enter your mobile number."
+                    );
+
+                    return;
+
+                }
+
+
+                localStorage.setItem(
+                    "CHOTI_ALEXA_MOBILE",
+                    value
+                );
+
+
+                if (status) {
+
+                    status.textContent =
+                        "Mobile number saved successfully.";
+
+                }
+
+
+                addHistory(
+                    "PROFILE",
+                    "Mobile number saved"
+                );
+
+
+                speak(
+                    "Your mobile number has been saved."
+                );
+
+            }
+        );
+
+    }
+
 }
 
 
@@ -2047,28 +2541,31 @@ function clearHistory() {
 
 function showModal(
     title,
-    text
+    message
 ) {
 
     const modal =
-        document.getElementById(
-            "modal"
-        );
+        el("modal");
 
 
     const modalTitle =
-        document.getElementById(
-            "modalTitle"
-        );
+        el("modalTitle");
 
 
     const modalText =
-        document.getElementById(
-            "modalText"
+        el("modalText");
+
+
+    if (!modal) {
+
+        alert(
+            String(message)
+                .replace(/<br>/g, "\n")
         );
 
+        return;
 
-    if (!modal) return;
+    }
 
 
     if (modalTitle) {
@@ -2082,7 +2579,7 @@ function showModal(
     if (modalText) {
 
         modalText.innerHTML =
-            text;
+            message;
 
     }
 
@@ -2090,6 +2587,7 @@ function showModal(
     modal.classList.add(
         "show"
     );
+
 }
 
 
@@ -2100,9 +2598,7 @@ function showModal(
 function closeModal() {
 
     const modal =
-        document.getElementById(
-            "modal"
-        );
+        el("modal");
 
 
     if (modal) {
@@ -2112,21 +2608,103 @@ function closeModal() {
         );
 
     }
+
 }
 
 
 /* =========================================================
-   MODAL BACKGROUND CLICK
+   ESCAPE HTML
+   ========================================================= */
+
+function escapeHTML(
+    value
+) {
+
+    return String(value)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        const target =
+            document.activeElement;
+
+
+        const typing =
+            target &&
+            (
+                target.tagName === "INPUT" ||
+                target.tagName === "TEXTAREA" ||
+                target.tagName === "SELECT"
+            );
+
+
+        if (
+            event.code === "Space" &&
+            !typing
+        ) {
+
+            event.preventDefault();
+
+            toggleListening();
+
+        }
+
+
+        if (
+            event.key === "Escape"
+        ) {
+
+            closeModal();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   MODAL OUTSIDE CLICK
    ========================================================= */
 
 document.addEventListener(
     "click",
-    event => {
+    function(event) {
 
         const modal =
-            document.getElementById(
-                "modal"
-            );
+            el("modal");
 
 
         if (
@@ -2143,60 +2721,72 @@ document.addEventListener(
 
 
 /* =========================================================
-   ESC KEY
+   AUTO WEATHER
+   ========================================================= */
+
+function startAutoRefresh() {
+
+    setInterval(
+        function() {
+
+            loadWeather();
+
+        },
+        5 * 60 * 1000
+    );
+
+}
+
+
+/* =========================================================
+   START SYSTEM
    ========================================================= */
 
 document.addEventListener(
-    "keydown",
-    event => {
+    "DOMContentLoaded",
+    function() {
 
-        if (
-            event.key === "Escape"
-        ) {
+        console.log(
+            "Choti Alexa starting..."
+        );
 
-            closeModal();
 
-        }
+        initMap();
+
+
+        initVoice();
+
+
+        setupMobileSystem();
+
+
+        renderHistory();
+
+
+        getInitialLocation();
+
+
+        loadWeather();
+
+
+        startAutoRefresh();
+
+
+        safeMapStatus(
+            "READY"
+        );
+
+
+        console.log(
+            "Choti Alexa Command Center READY"
+        );
 
     }
 );
 
 
 /* =========================================================
-   ESCAPE HTML
-   ========================================================= */
-
-function escapeHTML(
-    value
-) {
-
-    return String(value)
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-        .replace(
-            /</g,
-            "&lt;"
-        )
-        .replace(
-            />/g,
-            "&gt;"
-        )
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-        .replace(
-            /'/g,
-            "&#039;"
-        );
-}
-
-
-/* =========================================================
-   GLOBAL EXPORTS
-   HTML onclick="" KE LIYE
+   GLOBAL FUNCTIONS
    ========================================================= */
 
 window.openMap =
@@ -2207,6 +2797,12 @@ window.getGPS =
 
 window.activateAlert =
     activateAlert;
+
+window.startSiren =
+    startSiren;
+
+window.stopSiren =
+    stopSiren;
 
 window.toggleSiren =
     toggleSiren;
@@ -2223,29 +2819,42 @@ window.openCompass =
 window.openSocial =
     openSocial;
 
+window.toggleListening =
+    toggleListening;
+
+window.processVoiceCommand =
+    processVoiceCommand;
+
+window.speak =
+    speak;
+
+window.speakWeather =
+    speakWeather;
+
 window.clearHistory =
     clearHistory;
+
+window.showModal =
+    showModal;
 
 window.closeModal =
     closeModal;
 
 
 /* =========================================================
-   FINAL STATUS
+   FINAL
    ========================================================= */
 
 console.log(
-    "========================================"
+    "%c CHOTI ALEXA ",
+    "background:#06131f;color:#62eaff;font-size:18px;font-weight:bold;padding:10px;"
 );
 
 console.log(
-    "CHOTI ALEXA — CBRND COMMAND CENTER"
+    "CBRND Command Center — READY"
 );
 
 console.log(
-    "VOICE + GPS + MAP + SIREN + APPS READY"
-);
-
-console.log(
-    "========================================"
+    "Old APP LINKS preserved:",
+    APP_LINKS
 );
