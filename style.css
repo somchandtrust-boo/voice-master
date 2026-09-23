@@ -1088,47 +1088,6 @@ header{
     transform:scale(.96);
 }
 
-/* =========================================================
-   REPORT COMPATIBILITY
-   ========================================================= */
-
-.report{
-    margin-top:20px;
-}
-
-.reportBody{
-    padding:18px;
-}
-
-.fileBox{
-    display:flex;
-
-    gap:10px;
-
-    flex-wrap:wrap;
-}
-
-.fileInput{
-    padding:12px;
-
-    border:1px dashed #31506a;
-
-    border-radius:12px;
-
-    color:#8ca5ba;
-
-    background:#07121d;
-}
-
-.reportText{
-    margin-top:15px;
-
-    color:#86a0b6;
-
-    font-size:11px;
-
-    line-height:1.8;
-}
 
 /* =========================================================
    ALERT MODE
