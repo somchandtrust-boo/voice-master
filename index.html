@@ -1,22 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="theme-color" content="#07111c">
-<title>Choti Alexa — CBRND Command Center</title>
+
+<meta
+    name="viewport"
+    content="width=device-width,initial-scale=1.0"
+>
+
+<meta
+    name="theme-color"
+    content="#07111c"
+>
+
+<title>
+    Choti Alexa — CBRND Command Center
+</title>
+
+
+<!-- =====================================================
+     LEAFLET CSS
+     ===================================================== -->
 
 <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
 />
-<link rel="stylesheet" href="style.css">
+
+
+<!-- =====================================================
+     CBRND CSS
+     ===================================================== -->
+
+<link
+    rel="stylesheet"
+    href="style.css"
+>
+
 </head>
 
 
+<body>
 
-<div id="alertMode" class="alertMode"></div>
 
+<!-- =====================================================
+     ALERT MODE
+     ===================================================== -->
+
+<div
+    id="alertMode"
+    class="alertMode">
+</div>
+
+
+<!-- =====================================================
+     HEADER
+     ===================================================== -->
 
 <header>
 
@@ -25,6 +65,7 @@
         <div class="logoIcon">
             ◉
         </div>
+
 
         <div>
 
@@ -52,75 +93,143 @@
 </header>
 
 
+<!-- =====================================================
+     MAIN
+     ===================================================== -->
+
 <main class="container">
 
 
-    <!-- TOP -->
+    <!-- =================================================
+         TOP SECTION
+         ================================================= -->
 
     <section class="top">
 
 
-        <!-- VOICE -->
+        <!-- =============================================
+             VOICE PANEL
+             ============================================= -->
 
         <div class="panel voice">
+
 
             <h2>
                 🎤 VOICE COMMAND
             </h2>
+
 
             <div class="voiceSubtitle">
                 Hindi + English Voice Control
             </div>
 
 
+            <!-- =========================================
+                 MICROPHONE
+                 ========================================= -->
+
             <div class="micArea">
 
                 <div class="ring ring1"></div>
+
                 <div class="ring ring2"></div>
+
                 <div class="ring ring3"></div>
 
 
                 <button
                     id="mic"
-                    class="mic">
-
+                    class="mic"
+                    type="button"
+                    aria-label="Voice command"
+                >
                     🎤
-
                 </button>
 
             </div>
 
 
+            <!-- =========================================
+                 VOICE STATUS
+                 ========================================= -->
+
             <div
                 id="voiceStatus"
-                class="voiceStatus">
-
+                class="voiceStatus"
+            >
                 Click microphone to speak
-
             </div>
 
+
+            <!-- =========================================
+                 COMMAND EXAMPLES
+                 ========================================= -->
 
             <div class="commandExample">
 
                 Try:
+
                 <b>Open map</b> •
+
                 <b>नक्शा खोलो</b> •
+
                 <b>Start siren</b> •
+
                 <b>सायरन चालू करो</b> •
+
                 <b>Show location</b>
 
             </div>
 
-            <div class="alexaIdentity" id="alexaIdentity">
+
+            <!-- =========================================
+                 ALEXA IDENTITY
+                 ========================================= -->
+
+            <div
+                class="alexaIdentity"
+                id="alexaIdentity"
+            >
+
+
                 <div class="alexaIdentityTop">
+
+
                     <div>
-                        <div class="alexaMiniLabel">ASSISTANT</div>
-                        <div class="alexaName" id="assistantNameDisplay">Choti Alexa</div>
+
+                        <div class="alexaMiniLabel">
+                            ASSISTANT
+                        </div>
+
+
+                        <div
+                            class="alexaName"
+                            id="assistantNameDisplay"
+                        >
+                            Choti Alexa
+                        </div>
+
                     </div>
-                    <div class="alexaLive"><span></span> READY</div>
+
+
+                    <div class="alexaLive">
+
+                        <span></span>
+
+                        READY
+
+                    </div>
+
                 </div>
 
+
+                <!-- =====================================
+                     MOBILE FORM
+                     ===================================== -->
+
                 <div class="alexaIdentityForm">
+
+
                     <input
                         id="userMobile"
                         class="alexaInput"
@@ -129,31 +238,46 @@
                         autocomplete="tel"
                         placeholder="Your mobile number"
                     >
+
+
                     <button
                         id="saveMobileBtn"
                         class="alexaSave"
-                        type="button">
+                        type="button"
+                    >
                         SAVE
                     </button>
+
+
                 </div>
 
-                <div class="alexaIdentityHint" id="mobileStatus">
+
+                <div
+                    class="alexaIdentityHint"
+                    id="mobileStatus"
+                >
                     Say: “What is your name?” or “Mera mobile number batao”
                 </div>
+
+
             </div>
 
         </div>
 
 
-        <!-- CONTROLS -->
+        <!-- =============================================
+             REAL COMMANDS
+             ============================================= -->
 
         <div class="panel">
+
 
             <div class="panelHeader">
 
                 <h2>
                     REAL COMMANDS
                 </h2>
+
 
                 <span>
                     NO API KEY
@@ -164,14 +288,23 @@
 
             <div class="controls">
 
+
                 <div class="controlGrid">
 
 
+                    <!-- =================================
+                         MAP
+                         ================================= -->
+
                     <button
                         class="control"
-                        onclick="openMap()">
+                        type="button"
+                        onclick="openMap()"
+                    >
 
-                        <span class="icon">🗺️</span>
+                        <span class="icon">
+                            🗺️
+                        </span>
 
                         MAP
 
@@ -184,11 +317,19 @@
                     </button>
 
 
+                    <!-- =================================
+                         GPS
+                         ================================= -->
+
                     <button
                         class="control"
-                        onclick="getGPS()">
+                        type="button"
+                        onclick="getGPS()"
+                    >
 
-                        <span class="icon">📍</span>
+                        <span class="icon">
+                            📍
+                        </span>
 
                         GPS
 
@@ -201,11 +342,19 @@
                     </button>
 
 
+                    <!-- =================================
+                         ALERT
+                         ================================= -->
+
                     <button
                         class="control"
-                        onclick="activateAlert()">
+                        type="button"
+                        onclick="activateAlert()"
+                    >
 
-                        <span class="icon">🚨</span>
+                        <span class="icon">
+                            🚨
+                        </span>
 
                         ALERT
 
@@ -218,11 +367,19 @@
                     </button>
 
 
+                    <!-- =================================
+                         SIREN
+                         ================================= -->
+
                     <button
                         class="control"
-                        onclick="toggleSiren()">
+                        type="button"
+                        onclick="toggleSiren()"
+                    >
 
-                        <span class="icon">🔊</span>
+                        <span class="icon">
+                            🔊
+                        </span>
 
                         SIREN
 
@@ -233,11 +390,22 @@
                         </small>
 
                     </button>
-<button
-                        class="control"
-                        onclick="stopEverything()">
 
-                        <span class="icon">⛔</span>
+
+                    <!-- =================================
+                         STOP
+                         FIXED
+                         ================================= -->
+
+                    <button
+                        class="control"
+                        type="button"
+                        onclick="stopEverything()"
+                    >
+
+                        <span class="icon">
+                            ⛔
+                        </span>
 
                         STOP
 
@@ -246,131 +414,233 @@
                         <small>
                             Stop active systems
                         </small>
-<!-- QR GENERATOR -->
 
-<button
-    class="control"
-    onclick="openApp('qr')">
-
-    <span class="icon">▦</span>
-
-    QR GENERATOR
-
-    <br>
-
-    <small>
-        Open CBRND QR
-    </small>
-
-</button>
+                    </button>
 
 
-<!-- SMART CAMERA -->
+                    <!-- =================================
+                         QR GENERATOR
+                         ================================= -->
 
-<button
-    class="control"
-    onclick="openApp('camera')">
+                    <button
+                        class="control"
+                        type="button"
+                        onclick="openApp('qr')"
+                    >
 
-    <span class="icon">📷</span>
+                        <span class="icon">
+                            ▦
+                        </span>
 
-    SMART CAMERA
+                        QR GENERATOR
 
-    <br>
+                        <br>
 
-    <small>
-        Open HD camera
-    </small>
+                        <small>
+                            Open CBRND QR
+                        </small>
 
-</button>
-
-
-<!-- SOS SIREN -->
-
-<button
-    class="control"
-    onclick="openApp('sos')">
-
-    <span class="icon">🚨</span>
-
-    SOS SIREN
-
-    <br>
-
-    <small>
-        Open emergency system
-    </small>
-
-</button>
+                    </button>
 
 
-<!-- LOCATION TRACKER -->
+                    <!-- =================================
+                         SMART CAMERA
+                         ================================= -->
 
-<button
-    class="control"
-    onclick="openApp('location')">
+                    <button
+                        class="control"
+                        type="button"
+                        onclick="openApp('camera')"
+                    >
 
-    <span class="icon">📍</span>
+                        <span class="icon">
+                            📷
+                        </span>
 
-    LOCATION TRACKER
+                        SMART CAMERA
 
-    <br>
+                        <br>
 
-    <small>
-        Open live tracker
-    </small>
+                        <small>
+                            Open HD camera
+                        </small>
 
-</button>
+                    </button>
 
-<!-- COMPASS -->
-<button
-    class="control"
-    onclick="openCompass()">
-    <span class="icon">🧭</span>
-    COMPASS
-    <br>
-    <small>Open digital compass</small>
-</button>
 
-<!-- AI VOICE ASSISTANT -->
-<button
-    class="control"
-    onclick="openApp('ai')">
-    <span class="icon">🤖</span>
-    AI • VOICE ASSISTANT
-    <br>
-    <small>Open AI voice assistant</small>
-</button>
+                    <!-- =================================
+                         SOS SIREN
+                         ================================= -->
 
-<!-- INSTAGRAM -->
-<button
-    class="control"
-    onclick="openSocial('instagram')">
-    <span class="icon">📸</span>
-    INSTAGRAM
-    <br>
-    <small>Open Instagram</small>
-</button>
+                    <button
+                        class="control"
+                        type="button"
+                        onclick="openApp('sos')"
+                    >
 
-<!-- FACEBOOK -->
-<button
-    class="control"
-    onclick="openSocial('facebook')">
-    <span class="icon">f</span>
-    FACEBOOK
-    <br>
-    <small>Open Facebook</small>
-</button>
+                        <span class="icon">
+                            🚨
+                        </span>
 
-<!-- WHATSAPP -->
-<button
-    class="control"
-    onclick="openSocial('whatsapp')">
-    <span class="icon">💬</span>
-    WHATSAPP
-    <br>
-    <small>Open WhatsApp</small>
-</button>
-                
+                        SOS SIREN
+
+                        <br>
+
+                        <small>
+                            Open emergency system
+                        </small>
+
+                    </button>
+
+
+                    <!-- =================================
+                         LOCATION TRACKER
+                         ================================= -->
+
+                    <button
+                        class="control"
+                        type="button"
+                        onclick="openApp('location')"
+                    >
+
+                        <span class="icon">
+                            📍
+                        </span>
+
+                        LOCATION TRACKER
+
+                        <br>
+
+                        <small>
+                            Open live tracker
+                        </small>
+
+                    </button>
+
+
+                    <!-- =================================
+                         COMPASS
+                         ================================= -->
+
+                    <button
+                        class="control"
+                        type="button"
+                        onclick="openCompass()"
+                    >
+
+                        <span class="icon">
+                            🧭
+                        </span>
+
+                        COMPASS
+
+                        <br>
+
+                        <small>
+                            Open digital compass
+                        </small>
+
+                    </button>
+
+
+                    <!-- =================================
+                         AI VOICE ASSISTANT
+                         ================================= -->
+
+                    <button
+                        class="control"
+                        type="button"
+                        onclick="openApp('ai')"
+                    >
+
+                        <span class="icon">
+                            🤖
+                        </span>
+
+                        AI • VOICE ASSISTANT
+
+                        <br>
+
+                        <small>
+                            Open AI voice assistant
+                        </small>
+
+                    </button>
+
+
+                    <!-- =================================
+                         INSTAGRAM
+                         ================================= -->
+
+                    <button
+                        class="control"
+                        type="button"
+                        onclick="openSocial('instagram')"
+                    >
+
+                        <span class="icon">
+                            📸
+                        </span>
+
+                        INSTAGRAM
+
+                        <br>
+
+                        <small>
+                            Open Instagram
+                        </small>
+
+                    </button>
+
+
+                    <!-- =================================
+                         FACEBOOK
+                         ================================= -->
+
+                    <button
+                        class="control"
+                        type="button"
+                        onclick="openSocial('facebook')"
+                    >
+
+                        <span class="icon">
+                            f
+                        </span>
+
+                        FACEBOOK
+
+                        <br>
+
+                        <small>
+                            Open Facebook
+                        </small>
+
+                    </button>
+
+
+                    <!-- =================================
+                         WHATSAPP
+                         ================================= -->
+
+                    <button
+                        class="control"
+                        type="button"
+                        onclick="openSocial('whatsapp')"
+                    >
+
+                        <span class="icon">
+                            💬
+                        </span>
+
+                        WHATSAPP
+
+                        <br>
+
+                        <small>
+                            Open WhatsApp
+                        </small>
+
+                    </button>
 
 
                 </div>
@@ -380,18 +650,28 @@
         </div>
 
     </section>
-<!-- MAP + HISTORY -->
+
+
+    <!-- =================================================
+         LOWER SECTION
+         ================================================= -->
 
     <section class="lower">
 
 
+        <!-- =============================================
+             LIVE GPS MAP
+             ============================================= -->
+
         <div class="panel map">
+
 
             <div class="panelHeader">
 
                 <h2>
                     LIVE GPS MAP
                 </h2>
+
 
                 <span id="mapStatus">
                     READY
@@ -402,10 +682,16 @@
 
             <div id="map"></div>
 
+
         </div>
 
 
+        <!-- =============================================
+             COMMAND HISTORY
+             ============================================= -->
+
         <div class="panel">
+
 
             <div class="panelHeader">
 
@@ -413,12 +699,13 @@
                     COMMAND HISTORY
                 </h2>
 
+
                 <button
                     class="action"
-                    onclick="clearHistory()">
-
+                    type="button"
+                    onclick="clearHistory()"
+                >
                     CLEAR
-
                 </button>
 
             </div>
@@ -426,45 +713,73 @@
 
             <div
                 id="history"
-                class="history">
+                class="history"
+            >
             </div>
+
 
         </div>
 
 
     </section>
+
 </main>
 
 
-<!-- MODAL -->
+<!-- =====================================================
+     MODAL
+     ===================================================== -->
 
 <div
     id="modal"
-    class="modal">
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modalTitle"
+>
+
 
     <div class="modalBox">
+
 
         <h2 id="modalTitle">
             CBRND
         </h2>
 
+
         <p id="modalText">
         </p>
 
+
         <button
             class="close"
-            onclick="closeModal()">
-
+            type="button"
+            onclick="closeModal()"
+        >
             CLOSE
-
         </button>
+
 
     </div>
 
 </div>
 
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- =====================================================
+     LEAFLET JS
+     ===================================================== -->
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
+
+
+<!-- =====================================================
+     CBRND SCRIPT
+     ===================================================== -->
+
 <script src="script.js"></script>
+
+
 </body>
 </html>
